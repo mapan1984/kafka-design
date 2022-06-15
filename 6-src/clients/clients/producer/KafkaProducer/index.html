@@ -1,0 +1,2609 @@
+
+<!doctype html>
+<html lang="zh" class="no-js">
+  <head>
+    
+      <meta charset="utf-8">
+      <meta name="viewport" content="width=device-width,initial-scale=1">
+      
+        <meta name="description" content="kafka 设计实现解析">
+      
+      
+      
+        <meta name="author" content="mapan">
+      
+      
+        <link rel="canonical" href="https://mapan1984.github.io/kafka-design/6-src/clients/clients/producer/KafkaProducer/">
+      
+      <link rel="icon" href="../../../../../assets/images/favicon.png">
+      <meta name="generator" content="mkdocs-1.2.2, mkdocs-material-7.3.0">
+    
+    
+      
+        <title>Kafka Producer - kafka 设计实现解析</title>
+      
+    
+    
+      <link rel="stylesheet" href="../../../../../assets/stylesheets/main.8b42a75e.min.css">
+      
+        
+        <link rel="stylesheet" href="../../../../../assets/stylesheets/palette.3f5d1f46.min.css">
+        
+      
+    
+    
+    
+      
+        
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+        <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Roboto:300,400,400i,700%7CRoboto+Mono&display=fallback">
+        <style>:root{--md-text-font-family:"Roboto";--md-code-font-family:"Roboto Mono"}</style>
+      
+    
+    
+    
+    
+      
+
+
+    
+    
+  </head>
+  
+  
+    
+    
+      
+    
+    
+    
+    
+    <body dir="ltr" data-md-color-scheme="default" data-md-color-primary="blue-grey" data-md-color-accent="deep-orange">
+  
+    
+    <script>function __prefix(e){return new URL("../../../../..",location).pathname+"."+e}function __get(e,t=localStorage){return JSON.parse(t.getItem(__prefix(e)))}</script>
+    
+      <script>var palette=__get("__palette");if(null!==palette&&"object"==typeof palette.color)for(var key in palette.color)document.body.setAttribute("data-md-color-"+key,palette.color[key])</script>
+    
+    <input class="md-toggle" data-md-toggle="drawer" type="checkbox" id="__drawer" autocomplete="off">
+    <input class="md-toggle" data-md-toggle="search" type="checkbox" id="__search" autocomplete="off">
+    <label class="md-overlay" for="__drawer"></label>
+    <div data-md-component="skip">
+      
+        
+        <a href="#producer" class="md-skip">
+          跳转至
+        </a>
+      
+    </div>
+    <div data-md-component="announce">
+      
+    </div>
+    
+      
+
+<header class="md-header" data-md-component="header">
+  <nav class="md-header__inner md-grid" aria-label="Header">
+    <a href="../../../../.." title="kafka 设计实现解析" class="md-header__button md-logo" aria-label="kafka 设计实现解析" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54z"/></svg>
+
+    </a>
+    <label class="md-header__button md-icon" for="__drawer">
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M3 6h18v2H3V6m0 5h18v2H3v-2m0 5h18v2H3v-2z"/></svg>
+    </label>
+    <div class="md-header__title" data-md-component="header-title">
+      <div class="md-header__ellipsis">
+        <div class="md-header__topic">
+          <span class="md-ellipsis">
+            kafka 设计实现解析
+          </span>
+        </div>
+        <div class="md-header__topic" data-md-component="header-topic">
+          <span class="md-ellipsis">
+            
+              Kafka Producer
+            
+          </span>
+        </div>
+      </div>
+    </div>
+    
+      <form class="md-header__option" data-md-component="palette">
+        
+          
+          
+          <input class="md-option" data-md-color-media="" data-md-color-scheme="default" data-md-color-primary="blue-grey" data-md-color-accent="deep-orange"  aria-label="Switch to dark mode"  type="radio" name="__palette" id="__palette_1">
+          
+            <label class="md-header__button md-icon" title="Switch to dark mode" for="__palette_2" hidden>
+              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M17 6H7c-3.31 0-6 2.69-6 6s2.69 6 6 6h10c3.31 0 6-2.69 6-6s-2.69-6-6-6zm0 10H7c-2.21 0-4-1.79-4-4s1.79-4 4-4h10c2.21 0 4 1.79 4 4s-1.79 4-4 4zM7 9c-1.66 0-3 1.34-3 3s1.34 3 3 3 3-1.34 3-3-1.34-3-3-3z"/></svg>
+            </label>
+          
+        
+          
+          
+          <input class="md-option" data-md-color-media="" data-md-color-scheme="slate" data-md-color-primary="" data-md-color-accent=""  aria-label="Switch to light mode"  type="radio" name="__palette" id="__palette_2">
+          
+            <label class="md-header__button md-icon" title="Switch to light mode" for="__palette_1" hidden>
+              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M17 7H7a5 5 0 0 0-5 5 5 5 0 0 0 5 5h10a5 5 0 0 0 5-5 5 5 0 0 0-5-5m0 8a3 3 0 0 1-3-3 3 3 0 0 1 3-3 3 3 0 0 1 3 3 3 3 0 0 1-3 3z"/></svg>
+            </label>
+          
+        
+      </form>
+    
+    
+    
+      <label class="md-header__button md-icon" for="__search">
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.516 6.516 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5z"/></svg>
+      </label>
+      
+<div class="md-search" data-md-component="search" role="dialog">
+  <label class="md-search__overlay" for="__search"></label>
+  <div class="md-search__inner" role="search">
+    <form class="md-search__form" name="search">
+      <input type="text" class="md-search__input" name="query" aria-label="搜索" placeholder="搜索" autocapitalize="off" autocorrect="off" autocomplete="off" spellcheck="false" data-md-component="search-query" required>
+      <label class="md-search__icon md-icon" for="__search">
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.516 6.516 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5z"/></svg>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11h12z"/></svg>
+      </label>
+      <nav class="md-search__options" aria-label="Search">
+        
+        <button type="reset" class="md-search__icon md-icon" aria-label="Clear" tabindex="-1">
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M19 6.41 17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12 19 6.41z"/></svg>
+        </button>
+      </nav>
+      
+    </form>
+    <div class="md-search__output">
+      <div class="md-search__scrollwrap" data-md-scrollfix>
+        <div class="md-search-result" data-md-component="search-result">
+          <div class="md-search-result__meta">
+            正在初始化搜索引擎
+          </div>
+          <ol class="md-search-result__list"></ol>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+    
+    
+      <div class="md-header__source">
+        
+<a href="https://github.com/mapan1984/kafka-design/" title="前往仓库" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><path d="M439.55 236.05 244 40.45a28.87 28.87 0 0 0-40.81 0l-40.66 40.63 51.52 51.52c27.06-9.14 52.68 16.77 43.39 43.68l49.66 49.66c34.23-11.8 61.18 31 35.47 56.69-26.49 26.49-70.21-2.87-56-37.34L240.22 199v121.85c25.3 12.54 22.26 41.85 9.08 55a34.34 34.34 0 0 1-48.55 0c-17.57-17.6-11.07-46.91 11.25-56v-123c-20.8-8.51-24.6-30.74-18.64-45L142.57 101 8.45 235.14a28.86 28.86 0 0 0 0 40.81l195.61 195.6a28.86 28.86 0 0 0 40.8 0l194.69-194.69a28.86 28.86 0 0 0 0-40.81z"/></svg>
+  </div>
+  <div class="md-source__repository">
+    GitHub
+  </div>
+</a>
+      </div>
+    
+  </nav>
+  
+</header>
+    
+    <div class="md-container" data-md-component="container">
+      
+      
+        
+          
+        
+      
+      <main class="md-main" data-md-component="main">
+        <div class="md-main__inner md-grid">
+          
+            
+              
+              <div class="md-sidebar md-sidebar--primary" data-md-component="sidebar" data-md-type="navigation" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+
+<nav class="md-nav md-nav--primary" aria-label="Navigation" data-md-level="0">
+  <label class="md-nav__title" for="__drawer">
+    <a href="../../../../.." title="kafka 设计实现解析" class="md-nav__button md-logo" aria-label="kafka 设计实现解析" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54z"/></svg>
+
+    </a>
+    kafka 设计实现解析
+  </label>
+  
+    <div class="md-nav__source">
+      
+<a href="https://github.com/mapan1984/kafka-design/" title="前往仓库" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><path d="M439.55 236.05 244 40.45a28.87 28.87 0 0 0-40.81 0l-40.66 40.63 51.52 51.52c27.06-9.14 52.68 16.77 43.39 43.68l49.66 49.66c34.23-11.8 61.18 31 35.47 56.69-26.49 26.49-70.21-2.87-56-37.34L240.22 199v121.85c25.3 12.54 22.26 41.85 9.08 55a34.34 34.34 0 0 1-48.55 0c-17.57-17.6-11.07-46.91 11.25-56v-123c-20.8-8.51-24.6-30.74-18.64-45L142.57 101 8.45 235.14a28.86 28.86 0 0 0 0 40.81l195.61 195.6a28.86 28.86 0 0 0 40.8 0l194.69-194.69a28.86 28.86 0 0 0 0-40.81z"/></svg>
+  </div>
+  <div class="md-source__repository">
+    GitHub
+  </div>
+</a>
+    </div>
+  
+  <ul class="md-nav__list" data-md-scrollfix>
+    
+      
+      
+      
+
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../../.." class="md-nav__link">
+        0. kafka 设计实现解析
+      </a>
+    </li>
+  
+
+    
+      
+      
+      
+
+  
+  
+  
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+      
+        <input class="md-nav__toggle md-toggle" data-md-toggle="__nav_2" type="checkbox" id="__nav_2" >
+      
+      
+      
+      
+        <label class="md-nav__link" for="__nav_2">
+          <span class="md-nav__icon md-icon"></span>
+          
+            <a href="../../../../../1-server%20%E8%A7%A3%E6%9E%90/" class="md-nav__link"
+              style="margin: initial; padding: initial; pointer-events: initial">
+          
+            1. server 解析
+          </a>
+        </label>
+      
+      <nav class="md-nav" aria-label="1. server 解析" data-md-level="1">
+        <label class="md-nav__title" for="__nav_2">
+          <span class="md-nav__icon md-icon"></span>
+          
+            <a href="../../../../../1-server%20%E8%A7%A3%E6%9E%90/" class="md-nav__link"
+              style="margin: initial; padding: initial; pointer-events: initial">
+          
+            1. server 解析
+          </a>
+        </label>
+        <ul class="md-nav__list" data-md-scrollfix>
+          
+            
+              
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../../../1-server%20%E8%A7%A3%E6%9E%90/1-server%20%E5%90%AF%E5%8A%A8%E8%BF%87%E7%A8%8B/" class="md-nav__link">
+        1.1 server 启动过程
+      </a>
+    </li>
+  
+
+            
+          
+            
+              
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../../../1-server%20%E8%A7%A3%E6%9E%90/2-server%20%E7%BD%91%E7%BB%9C%E6%A8%A1%E5%9E%8B/" class="md-nav__link">
+        1.2 server 网络模型
+      </a>
+    </li>
+  
+
+            
+          
+            
+              
+  
+  
+  
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+      
+        <input class="md-nav__toggle md-toggle" data-md-toggle="__nav_2_3" type="checkbox" id="__nav_2_3" >
+      
+      
+      
+      
+        <label class="md-nav__link" for="__nav_2_3">
+          <span class="md-nav__icon md-icon"></span>
+          
+            <a href="../../../../../1-server%20%E8%A7%A3%E6%9E%90/3-KafkaController/" class="md-nav__link"
+              style="margin: initial; padding: initial; pointer-events: initial">
+          
+            1.3 KafkaController
+          </a>
+        </label>
+      
+      <nav class="md-nav" aria-label="1.3 KafkaController" data-md-level="2">
+        <label class="md-nav__title" for="__nav_2_3">
+          <span class="md-nav__icon md-icon"></span>
+          
+            <a href="../../../../../1-server%20%E8%A7%A3%E6%9E%90/3-KafkaController/" class="md-nav__link"
+              style="margin: initial; padding: initial; pointer-events: initial">
+          
+            1.3 KafkaController
+          </a>
+        </label>
+        <ul class="md-nav__list" data-md-scrollfix>
+          
+            
+              
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../../../1-server%20%E8%A7%A3%E6%9E%90/3-KafkaController/1-controller%E5%90%AF%E5%8A%A8/" class="md-nav__link">
+        1.3.1 KafkaController 启动
+      </a>
+    </li>
+  
+
+            
+          
+            
+              
+  
+  
+  
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+      
+        <input class="md-nav__toggle md-toggle" data-md-toggle="__nav_2_3_2" type="checkbox" id="__nav_2_3_2" >
+      
+      
+      
+      
+        <label class="md-nav__link" for="__nav_2_3_2">
+          <span class="md-nav__icon md-icon"></span>
+          
+            <a href="../../../../../1-server%20%E8%A7%A3%E6%9E%90/3-KafkaController/2-controller%E7%BB%84%E4%BB%B6/" class="md-nav__link"
+              style="margin: initial; padding: initial; pointer-events: initial">
+          
+            1.3.2 KafkaController 组件
+          </a>
+        </label>
+      
+      <nav class="md-nav" aria-label="1.3.2 KafkaController 组件" data-md-level="3">
+        <label class="md-nav__title" for="__nav_2_3_2">
+          <span class="md-nav__icon md-icon"></span>
+          
+            <a href="../../../../../1-server%20%E8%A7%A3%E6%9E%90/3-KafkaController/2-controller%E7%BB%84%E4%BB%B6/" class="md-nav__link"
+              style="margin: initial; padding: initial; pointer-events: initial">
+          
+            1.3.2 KafkaController 组件
+          </a>
+        </label>
+        <ul class="md-nav__list" data-md-scrollfix>
+          
+            
+              
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../../../1-server%20%E8%A7%A3%E6%9E%90/3-KafkaController/2-controller%E7%BB%84%E4%BB%B6/1-ControllerContext/" class="md-nav__link">
+        1.3.2.1 ControllerContext
+      </a>
+    </li>
+  
+
+            
+          
+            
+              
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../../../1-server%20%E8%A7%A3%E6%9E%90/3-KafkaController/2-controller%E7%BB%84%E4%BB%B6/2-ReplicaStateMachine/" class="md-nav__link">
+        1.3.2.2 ReplicaStateMachine
+      </a>
+    </li>
+  
+
+            
+          
+            
+              
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../../../1-server%20%E8%A7%A3%E6%9E%90/3-KafkaController/2-controller%E7%BB%84%E4%BB%B6/3-PartitionStateMachine/" class="md-nav__link">
+        1.3.2.3 PartitionStateMachine
+      </a>
+    </li>
+  
+
+            
+          
+            
+              
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../../../1-server%20%E8%A7%A3%E6%9E%90/3-KafkaController/2-controller%E7%BB%84%E4%BB%B6/4-ControllerChannelManager/" class="md-nav__link">
+        1.3.2.4 ControllerChannelManager
+      </a>
+    </li>
+  
+
+            
+          
+        </ul>
+      </nav>
+    </li>
+  
+
+            
+          
+            
+              
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../../../1-server%20%E8%A7%A3%E6%9E%90/3-KafkaController/3-reassign-partitions/" class="md-nav__link">
+        1.3.3 reassign partitions
+      </a>
+    </li>
+  
+
+            
+          
+            
+              
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../../../1-server%20%E8%A7%A3%E6%9E%90/3-KafkaController/4-delete-topic/" class="md-nav__link">
+        1.3.4 delete topic
+      </a>
+    </li>
+  
+
+            
+          
+        </ul>
+      </nav>
+    </li>
+  
+
+            
+          
+            
+              
+  
+  
+  
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+      
+        <input class="md-nav__toggle md-toggle" data-md-toggle="__nav_2_4" type="checkbox" id="__nav_2_4" >
+      
+      
+      
+      
+        <label class="md-nav__link" for="__nav_2_4">
+          <span class="md-nav__icon md-icon"></span>
+          
+            <a href="../../../../../1-server%20%E8%A7%A3%E6%9E%90/4-ReplicaManager/" class="md-nav__link"
+              style="margin: initial; padding: initial; pointer-events: initial">
+          
+            1.4 ReplicaManager
+          </a>
+        </label>
+      
+      <nav class="md-nav" aria-label="1.4 ReplicaManager" data-md-level="2">
+        <label class="md-nav__title" for="__nav_2_4">
+          <span class="md-nav__icon md-icon"></span>
+          
+            <a href="../../../../../1-server%20%E8%A7%A3%E6%9E%90/4-ReplicaManager/" class="md-nav__link"
+              style="margin: initial; padding: initial; pointer-events: initial">
+          
+            1.4 ReplicaManager
+          </a>
+        </label>
+        <ul class="md-nav__list" data-md-scrollfix>
+          
+            
+              
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../../../1-server%20%E8%A7%A3%E6%9E%90/4-ReplicaManager/1-replica%20manager%20%E5%90%AF%E5%8A%A8/" class="md-nav__link">
+        1.4.1 ReplicaManager 启动
+      </a>
+    </li>
+  
+
+            
+          
+        </ul>
+      </nav>
+    </li>
+  
+
+            
+          
+            
+              
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../../../1-server%20%E8%A7%A3%E6%9E%90/5-GroupCoordinator/" class="md-nav__link">
+        1.5 GroupCoordinator
+      </a>
+    </li>
+  
+
+            
+          
+            
+              
+  
+  
+  
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+      
+        <input class="md-nav__toggle md-toggle" data-md-toggle="__nav_2_6" type="checkbox" id="__nav_2_6" >
+      
+      
+      
+      
+        <label class="md-nav__link" for="__nav_2_6">
+          <span class="md-nav__icon md-icon"></span>
+          
+            <a href="../../../../../1-server%20%E8%A7%A3%E6%9E%90/6-LogManager/" class="md-nav__link"
+              style="margin: initial; padding: initial; pointer-events: initial">
+          
+            1.6 LogManager
+          </a>
+        </label>
+      
+      <nav class="md-nav" aria-label="1.6 LogManager" data-md-level="2">
+        <label class="md-nav__title" for="__nav_2_6">
+          <span class="md-nav__icon md-icon"></span>
+          
+            <a href="../../../../../1-server%20%E8%A7%A3%E6%9E%90/6-LogManager/" class="md-nav__link"
+              style="margin: initial; padding: initial; pointer-events: initial">
+          
+            1.6 LogManager
+          </a>
+        </label>
+        <ul class="md-nav__list" data-md-scrollfix>
+          
+            
+              
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../../../1-server%20%E8%A7%A3%E6%9E%90/6-LogManager/1-LogManager%20%E5%90%AF%E5%8A%A8/" class="md-nav__link">
+        1.6.1 LogManager 启动
+      </a>
+    </li>
+  
+
+            
+          
+            
+              
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../../../1-server%20%E8%A7%A3%E6%9E%90/6-LogManager/2-%E6%97%A5%E5%BF%97%E6%B8%85%E7%90%86/" class="md-nav__link">
+        1.6.2 日志清理
+      </a>
+    </li>
+  
+
+            
+          
+            
+              
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../../../1-server%20%E8%A7%A3%E6%9E%90/6-LogManager/3-flush%20log/" class="md-nav__link">
+        1.6.3 flush log
+      </a>
+    </li>
+  
+
+            
+          
+        </ul>
+      </nav>
+    </li>
+  
+
+            
+          
+        </ul>
+      </nav>
+    </li>
+  
+
+    
+      
+      
+      
+
+  
+  
+  
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+      
+        <input class="md-nav__toggle md-toggle" data-md-toggle="__nav_3" type="checkbox" id="__nav_3" >
+      
+      
+      
+      
+        <label class="md-nav__link" for="__nav_3">
+          <span class="md-nav__icon md-icon"></span>
+          
+            <a href="../../../../../2-producer%20%E8%A7%A3%E6%9E%90/" class="md-nav__link"
+              style="margin: initial; padding: initial; pointer-events: initial">
+          
+            2. producer 解析
+          </a>
+        </label>
+      
+      <nav class="md-nav" aria-label="2. producer 解析" data-md-level="1">
+        <label class="md-nav__title" for="__nav_3">
+          <span class="md-nav__icon md-icon"></span>
+          
+            <a href="../../../../../2-producer%20%E8%A7%A3%E6%9E%90/" class="md-nav__link"
+              style="margin: initial; padding: initial; pointer-events: initial">
+          
+            2. producer 解析
+          </a>
+        </label>
+        <ul class="md-nav__list" data-md-scrollfix>
+          
+            
+              
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../../../2-producer%20%E8%A7%A3%E6%9E%90/1-producer%20%E5%8F%91%E9%80%81%E6%B6%88%E6%81%AF/" class="md-nav__link">
+        2.1 producer 发送消息
+      </a>
+    </li>
+  
+
+            
+          
+            
+              
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../../../2-producer%20%E8%A7%A3%E6%9E%90/2-producer%20%E5%B9%82%E7%AD%89%E6%80%A7/" class="md-nav__link">
+        2.2 producer 幂等性
+      </a>
+    </li>
+  
+
+            
+          
+            
+              
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../../../2-producer%20%E8%A7%A3%E6%9E%90/3-producer%20%E5%8A%A0%E5%AF%86%20%E8%AE%A4%E8%AF%81/" class="md-nav__link">
+        2.3 producer 加密/认证
+      </a>
+    </li>
+  
+
+            
+          
+        </ul>
+      </nav>
+    </li>
+  
+
+    
+      
+      
+      
+
+  
+  
+  
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+      
+        <input class="md-nav__toggle md-toggle" data-md-toggle="__nav_4" type="checkbox" id="__nav_4" >
+      
+      
+      
+      
+        <label class="md-nav__link" for="__nav_4">
+          <span class="md-nav__icon md-icon"></span>
+          
+            <a href="../../../../../3-consumer%20%E8%A7%A3%E6%9E%90/" class="md-nav__link"
+              style="margin: initial; padding: initial; pointer-events: initial">
+          
+            3. consumer 解析
+          </a>
+        </label>
+      
+      <nav class="md-nav" aria-label="3. consumer 解析" data-md-level="1">
+        <label class="md-nav__title" for="__nav_4">
+          <span class="md-nav__icon md-icon"></span>
+          
+            <a href="../../../../../3-consumer%20%E8%A7%A3%E6%9E%90/" class="md-nav__link"
+              style="margin: initial; padding: initial; pointer-events: initial">
+          
+            3. consumer 解析
+          </a>
+        </label>
+        <ul class="md-nav__list" data-md-scrollfix>
+          
+            
+              
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../../../3-consumer%20%E8%A7%A3%E6%9E%90/1-%E6%B6%88%E8%B4%B9%E7%BB%84%E7%AE%A1%E7%90%86/" class="md-nav__link">
+        3.1-消费组管理
+      </a>
+    </li>
+  
+
+            
+          
+        </ul>
+      </nav>
+    </li>
+  
+
+    
+      
+      
+      
+
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../../../4-kafka-network-io/" class="md-nav__link">
+        4. kafka network io
+      </a>
+    </li>
+  
+
+    
+      
+      
+      
+
+  
+  
+  
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+      
+        <input class="md-nav__toggle md-toggle" data-md-toggle="__nav_6" type="checkbox" id="__nav_6" >
+      
+      
+      
+      
+        <label class="md-nav__link" for="__nav_6">
+          <span class="md-nav__icon md-icon"></span>
+          
+            <a href="../../../../../5-release%20note/" class="md-nav__link"
+              style="margin: initial; padding: initial; pointer-events: initial">
+          
+            5. Release Note
+          </a>
+        </label>
+      
+      <nav class="md-nav" aria-label="5. Release Note" data-md-level="1">
+        <label class="md-nav__title" for="__nav_6">
+          <span class="md-nav__icon md-icon"></span>
+          
+            <a href="../../../../../5-release%20note/" class="md-nav__link"
+              style="margin: initial; padding: initial; pointer-events: initial">
+          
+            5. Release Note
+          </a>
+        </label>
+        <ul class="md-nav__list" data-md-scrollfix>
+          
+            
+              
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../../../5-release%20note/2.7/" class="md-nav__link">
+        2.7
+      </a>
+    </li>
+  
+
+            
+          
+            
+              
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../../../5-release%20note/2.8.0/" class="md-nav__link">
+        2.8.0
+      </a>
+    </li>
+  
+
+            
+          
+        </ul>
+      </nav>
+    </li>
+  
+
+    
+      
+      
+      
+
+  
+  
+    
+  
+  
+    
+    <li class="md-nav__item md-nav__item--active md-nav__item--nested">
+      
+      
+        <input class="md-nav__toggle md-toggle" data-md-toggle="__nav_7" type="checkbox" id="__nav_7" checked>
+      
+      
+      
+      
+        <label class="md-nav__link" for="__nav_7">
+          <span class="md-nav__icon md-icon"></span>
+          
+            <a href="../../../../" class="md-nav__link"
+              style="margin: initial; padding: initial; pointer-events: initial">
+          
+            6. Src
+          </a>
+        </label>
+      
+      <nav class="md-nav" aria-label="6. Src" data-md-level="1">
+        <label class="md-nav__title" for="__nav_7">
+          <span class="md-nav__icon md-icon"></span>
+          
+            <a href="../../../../" class="md-nav__link"
+              style="margin: initial; padding: initial; pointer-events: initial">
+          
+            6. Src
+          </a>
+        </label>
+        <ul class="md-nav__list" data-md-scrollfix>
+          
+            
+              
+  
+  
+    
+  
+  
+    
+    <li class="md-nav__item md-nav__item--active md-nav__item--nested">
+      
+      
+        <input class="md-nav__toggle md-toggle" data-md-toggle="__nav_7_1" type="checkbox" id="__nav_7_1" checked>
+      
+      
+      
+      
+        <label class="md-nav__link" for="__nav_7_1">
+          <span class="md-nav__icon md-icon"></span>
+          
+            Clients
+          
+        </label>
+      
+      <nav class="md-nav" aria-label="Clients" data-md-level="2">
+        <label class="md-nav__title" for="__nav_7_1">
+          <span class="md-nav__icon md-icon"></span>
+          
+            Clients
+          
+        </label>
+        <ul class="md-nav__list" data-md-scrollfix>
+          
+            
+              
+  
+  
+    
+  
+  
+    
+    <li class="md-nav__item md-nav__item--active md-nav__item--nested">
+      
+      
+        <input class="md-nav__toggle md-toggle" data-md-toggle="__nav_7_1_1" type="checkbox" id="__nav_7_1_1" checked>
+      
+      
+      
+      
+        <label class="md-nav__link" for="__nav_7_1_1">
+          <span class="md-nav__icon md-icon"></span>
+          
+            Clients
+          
+        </label>
+      
+      <nav class="md-nav" aria-label="Clients" data-md-level="3">
+        <label class="md-nav__title" for="__nav_7_1_1">
+          <span class="md-nav__icon md-icon"></span>
+          
+            Clients
+          
+        </label>
+        <ul class="md-nav__list" data-md-scrollfix>
+          
+            
+              
+  
+  
+    
+  
+  
+    
+    <li class="md-nav__item md-nav__item--active md-nav__item--nested">
+      
+      
+        <input class="md-nav__toggle md-toggle" data-md-toggle="__nav_7_1_1_1" type="checkbox" id="__nav_7_1_1_1" checked>
+      
+      
+      
+      
+        <label class="md-nav__link" for="__nav_7_1_1_1">
+          <span class="md-nav__icon md-icon"></span>
+          
+            Producer
+          
+        </label>
+      
+      <nav class="md-nav" aria-label="Producer" data-md-level="4">
+        <label class="md-nav__title" for="__nav_7_1_1_1">
+          <span class="md-nav__icon md-icon"></span>
+          
+            Producer
+          
+        </label>
+        <ul class="md-nav__list" data-md-scrollfix>
+          
+            
+              
+  
+  
+  
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+      
+        <input class="md-nav__toggle md-toggle" data-md-toggle="__nav_7_1_1_1_1" type="checkbox" id="__nav_7_1_1_1_1" >
+      
+      
+      
+      
+        <label class="md-nav__link" for="__nav_7_1_1_1_1">
+          <span class="md-nav__icon md-icon"></span>
+          
+            Internals
+          
+        </label>
+      
+      <nav class="md-nav" aria-label="Internals" data-md-level="5">
+        <label class="md-nav__title" for="__nav_7_1_1_1_1">
+          <span class="md-nav__icon md-icon"></span>
+          
+            Internals
+          
+        </label>
+        <ul class="md-nav__list" data-md-scrollfix>
+          
+            
+              
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../internals/ProducerBatch/" class="md-nav__link">
+        Producer Batch
+      </a>
+    </li>
+  
+
+            
+          
+            
+              
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../internals/ProducerMetadata/" class="md-nav__link">
+        Producer Metadata
+      </a>
+    </li>
+  
+
+            
+          
+            
+              
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../internals/RecordAccumulator/" class="md-nav__link">
+        Record Accumulator
+      </a>
+    </li>
+  
+
+            
+          
+            
+              
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../internals/Sender/" class="md-nav__link">
+        Sender
+      </a>
+    </li>
+  
+
+            
+          
+        </ul>
+      </nav>
+    </li>
+  
+
+            
+          
+            
+              
+  
+  
+    
+  
+  
+    <li class="md-nav__item md-nav__item--active">
+      
+      <input class="md-nav__toggle md-toggle" data-md-toggle="toc" type="checkbox" id="__toc">
+      
+      
+        
+      
+      
+        <label class="md-nav__link md-nav__link--active" for="__toc">
+          <span class="md-nav__icon md-icon"></span>
+          
+            <a href="./" class="md-nav__link md-nav__link--active"
+              style="margin: initial; padding: initial; pointer-events: initial">
+          
+            Kafka Producer
+          </a>
+        </label>
+      
+      <a href="./" class="md-nav__link md-nav__link--active">
+        Kafka Producer
+      </a>
+      
+        
+<nav class="md-nav md-nav--secondary" aria-label="目录">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      目录
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#_1" class="md-nav__link">
+    属性
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#_2" class="md-nav__link">
+    构造方法
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#send" class="md-nav__link">
+    send
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#dosend" class="md-nav__link">
+    doSend
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+      
+    </li>
+  
+
+            
+          
+        </ul>
+      </nav>
+    </li>
+  
+
+            
+          
+            
+              
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../Metadata/" class="md-nav__link">
+        Metadata
+      </a>
+    </li>
+  
+
+            
+          
+            
+              
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../NetworkClient/" class="md-nav__link">
+        Network Client
+      </a>
+    </li>
+  
+
+            
+          
+        </ul>
+      </nav>
+    </li>
+  
+
+            
+          
+            
+              
+  
+  
+  
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+      
+        <input class="md-nav__toggle md-toggle" data-md-toggle="__nav_7_1_2" type="checkbox" id="__nav_7_1_2" >
+      
+      
+      
+      
+        <label class="md-nav__link" for="__nav_7_1_2">
+          <span class="md-nav__icon md-icon"></span>
+          
+            Common
+          
+        </label>
+      
+      <nav class="md-nav" aria-label="Common" data-md-level="3">
+        <label class="md-nav__title" for="__nav_7_1_2">
+          <span class="md-nav__icon md-icon"></span>
+          
+            Common
+          
+        </label>
+        <ul class="md-nav__list" data-md-scrollfix>
+          
+            
+              
+  
+  
+  
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+      
+        <input class="md-nav__toggle md-toggle" data-md-toggle="__nav_7_1_2_1" type="checkbox" id="__nav_7_1_2_1" >
+      
+      
+      
+      
+        <label class="md-nav__link" for="__nav_7_1_2_1">
+          <span class="md-nav__icon md-icon"></span>
+          
+            Network
+          
+        </label>
+      
+      <nav class="md-nav" aria-label="Network" data-md-level="4">
+        <label class="md-nav__title" for="__nav_7_1_2_1">
+          <span class="md-nav__icon md-icon"></span>
+          
+            Network
+          
+        </label>
+        <ul class="md-nav__list" data-md-scrollfix>
+          
+            
+              
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../common/network/KafkaChannel/" class="md-nav__link">
+        Kafka Channel
+      </a>
+    </li>
+  
+
+            
+          
+            
+              
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../common/network/NetworkReceive/" class="md-nav__link">
+        Network Receive
+      </a>
+    </li>
+  
+
+            
+          
+            
+              
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../common/network/NetworkSend/" class="md-nav__link">
+        Network Send
+      </a>
+    </li>
+  
+
+            
+          
+            
+              
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../common/network/Receive/" class="md-nav__link">
+        Receive
+      </a>
+    </li>
+  
+
+            
+          
+            
+              
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../common/network/Selector/" class="md-nav__link">
+        Selector
+      </a>
+    </li>
+  
+
+            
+          
+            
+              
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../common/network/Send/" class="md-nav__link">
+        Send
+      </a>
+    </li>
+  
+
+            
+          
+            
+              
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../common/network/TransportLayer/" class="md-nav__link">
+        Transport Layer
+      </a>
+    </li>
+  
+
+            
+          
+        </ul>
+      </nav>
+    </li>
+  
+
+            
+          
+            
+              
+  
+  
+  
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+      
+        <input class="md-nav__toggle md-toggle" data-md-toggle="__nav_7_1_2_2" type="checkbox" id="__nav_7_1_2_2" >
+      
+      
+      
+      
+        <label class="md-nav__link" for="__nav_7_1_2_2">
+          <span class="md-nav__icon md-icon"></span>
+          
+            Utils
+          
+        </label>
+      
+      <nav class="md-nav" aria-label="Utils" data-md-level="4">
+        <label class="md-nav__title" for="__nav_7_1_2_2">
+          <span class="md-nav__icon md-icon"></span>
+          
+            Utils
+          
+        </label>
+        <ul class="md-nav__list" data-md-scrollfix>
+          
+            
+              
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../common/utils/KafkaThread/" class="md-nav__link">
+        Kafka Thread
+      </a>
+    </li>
+  
+
+            
+          
+        </ul>
+      </nav>
+    </li>
+  
+
+            
+          
+        </ul>
+      </nav>
+    </li>
+  
+
+            
+          
+        </ul>
+      </nav>
+    </li>
+  
+
+            
+          
+            
+              
+  
+  
+  
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+      
+        <input class="md-nav__toggle md-toggle" data-md-toggle="__nav_7_2" type="checkbox" id="__nav_7_2" >
+      
+      
+      
+      
+        <label class="md-nav__link" for="__nav_7_2">
+          <span class="md-nav__icon md-icon"></span>
+          
+            Core
+          
+        </label>
+      
+      <nav class="md-nav" aria-label="Core" data-md-level="2">
+        <label class="md-nav__title" for="__nav_7_2">
+          <span class="md-nav__icon md-icon"></span>
+          
+            Core
+          
+        </label>
+        <ul class="md-nav__list" data-md-scrollfix>
+          
+            
+              
+  
+  
+  
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+      
+        <input class="md-nav__toggle md-toggle" data-md-toggle="__nav_7_2_1" type="checkbox" id="__nav_7_2_1" >
+      
+      
+      
+      
+        <label class="md-nav__link" for="__nav_7_2_1">
+          <span class="md-nav__icon md-icon"></span>
+          
+            <a href="../../../../core/kafka/" class="md-nav__link"
+              style="margin: initial; padding: initial; pointer-events: initial">
+          
+            Kafka
+          </a>
+        </label>
+      
+      <nav class="md-nav" aria-label="Kafka" data-md-level="3">
+        <label class="md-nav__title" for="__nav_7_2_1">
+          <span class="md-nav__icon md-icon"></span>
+          
+            <a href="../../../../core/kafka/" class="md-nav__link"
+              style="margin: initial; padding: initial; pointer-events: initial">
+          
+            Kafka
+          </a>
+        </label>
+        <ul class="md-nav__list" data-md-scrollfix>
+          
+            
+              
+  
+  
+  
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+      
+        <input class="md-nav__toggle md-toggle" data-md-toggle="__nav_7_2_1_1" type="checkbox" id="__nav_7_2_1_1" >
+      
+      
+      
+      
+        <label class="md-nav__link" for="__nav_7_2_1_1">
+          <span class="md-nav__icon md-icon"></span>
+          
+            Controller
+          
+        </label>
+      
+      <nav class="md-nav" aria-label="Controller" data-md-level="4">
+        <label class="md-nav__title" for="__nav_7_2_1_1">
+          <span class="md-nav__icon md-icon"></span>
+          
+            Controller
+          
+        </label>
+        <ul class="md-nav__list" data-md-scrollfix>
+          
+            
+              
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../../core/kafka/controller/ControllerState/" class="md-nav__link">
+        ControllerState
+      </a>
+    </li>
+  
+
+            
+          
+            
+              
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../../core/kafka/controller/ReplicaStateMachine/" class="md-nav__link">
+        ReplicaStateMachine
+      </a>
+    </li>
+  
+
+            
+          
+            
+              
+  
+  
+  
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+      
+        <input class="md-nav__toggle md-toggle" data-md-toggle="__nav_7_2_1_1_3" type="checkbox" id="__nav_7_2_1_1_3" >
+      
+      
+      
+      
+        <label class="md-nav__link" for="__nav_7_2_1_1_3">
+          <span class="md-nav__icon md-icon"></span>
+          
+            <a href="../../../../core/kafka/controller/ControllerContext/" class="md-nav__link"
+              style="margin: initial; padding: initial; pointer-events: initial">
+          
+            ControllerContext
+          </a>
+        </label>
+      
+      <nav class="md-nav" aria-label="ControllerContext" data-md-level="5">
+        <label class="md-nav__title" for="__nav_7_2_1_1_3">
+          <span class="md-nav__icon md-icon"></span>
+          
+            <a href="../../../../core/kafka/controller/ControllerContext/" class="md-nav__link"
+              style="margin: initial; padding: initial; pointer-events: initial">
+          
+            ControllerContext
+          </a>
+        </label>
+        <ul class="md-nav__list" data-md-scrollfix>
+          
+            
+              
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../../core/kafka/controller/ControllerContext/ReplicaAssignment/" class="md-nav__link">
+        ReplicaAssignment
+      </a>
+    </li>
+  
+
+            
+          
+        </ul>
+      </nav>
+    </li>
+  
+
+            
+          
+            
+              
+  
+  
+  
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+      
+        <input class="md-nav__toggle md-toggle" data-md-toggle="__nav_7_2_1_1_4" type="checkbox" id="__nav_7_2_1_1_4" >
+      
+      
+      
+      
+        <label class="md-nav__link" for="__nav_7_2_1_1_4">
+          <span class="md-nav__icon md-icon"></span>
+          
+            <a href="../../../../core/kafka/controller/ControllerEventManager/" class="md-nav__link"
+              style="margin: initial; padding: initial; pointer-events: initial">
+          
+            ControllerEventManager
+          </a>
+        </label>
+      
+      <nav class="md-nav" aria-label="ControllerEventManager" data-md-level="5">
+        <label class="md-nav__title" for="__nav_7_2_1_1_4">
+          <span class="md-nav__icon md-icon"></span>
+          
+            <a href="../../../../core/kafka/controller/ControllerEventManager/" class="md-nav__link"
+              style="margin: initial; padding: initial; pointer-events: initial">
+          
+            ControllerEventManager
+          </a>
+        </label>
+        <ul class="md-nav__list" data-md-scrollfix>
+          
+            
+              
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../../core/kafka/controller/ControllerEventManager/ControllerEventProcessor/" class="md-nav__link">
+        ControllerEventProcessor
+      </a>
+    </li>
+  
+
+            
+          
+            
+              
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../../core/kafka/controller/ControllerEventManager/ControllerEventThread/" class="md-nav__link">
+        ControllerEventThread
+      </a>
+    </li>
+  
+
+            
+          
+            
+              
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../../core/kafka/controller/ControllerEventManager/QueueEvent/" class="md-nav__link">
+        QueueEvent
+      </a>
+    </li>
+  
+
+            
+          
+        </ul>
+      </nav>
+    </li>
+  
+
+            
+          
+            
+              
+  
+  
+  
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+      
+        <input class="md-nav__toggle md-toggle" data-md-toggle="__nav_7_2_1_1_5" type="checkbox" id="__nav_7_2_1_1_5" >
+      
+      
+      
+      
+        <label class="md-nav__link" for="__nav_7_2_1_1_5">
+          <span class="md-nav__icon md-icon"></span>
+          
+            <a href="../../../../core/kafka/controller/KafkaController/" class="md-nav__link"
+              style="margin: initial; padding: initial; pointer-events: initial">
+          
+            KafkaController
+          </a>
+        </label>
+      
+      <nav class="md-nav" aria-label="KafkaController" data-md-level="5">
+        <label class="md-nav__title" for="__nav_7_2_1_1_5">
+          <span class="md-nav__icon md-icon"></span>
+          
+            <a href="../../../../core/kafka/controller/KafkaController/" class="md-nav__link"
+              style="margin: initial; padding: initial; pointer-events: initial">
+          
+            KafkaController
+          </a>
+        </label>
+        <ul class="md-nav__list" data-md-scrollfix>
+          
+            
+              
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../../core/kafka/controller/KafkaController/ControllerEvent/" class="md-nav__link">
+        ControllerEvent
+      </a>
+    </li>
+  
+
+            
+          
+        </ul>
+      </nav>
+    </li>
+  
+
+            
+          
+        </ul>
+      </nav>
+    </li>
+  
+
+            
+          
+            
+              
+  
+  
+  
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+      
+        <input class="md-nav__toggle md-toggle" data-md-toggle="__nav_7_2_1_2" type="checkbox" id="__nav_7_2_1_2" >
+      
+      
+      
+      
+        <label class="md-nav__link" for="__nav_7_2_1_2">
+          <span class="md-nav__icon md-icon"></span>
+          
+            Network
+          
+        </label>
+      
+      <nav class="md-nav" aria-label="Network" data-md-level="4">
+        <label class="md-nav__title" for="__nav_7_2_1_2">
+          <span class="md-nav__icon md-icon"></span>
+          
+            Network
+          
+        </label>
+        <ul class="md-nav__list" data-md-scrollfix>
+          
+            
+              
+  
+  
+  
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+      
+        <input class="md-nav__toggle md-toggle" data-md-toggle="__nav_7_2_1_2_1" type="checkbox" id="__nav_7_2_1_2_1" >
+      
+      
+      
+      
+        <label class="md-nav__link" for="__nav_7_2_1_2_1">
+          <span class="md-nav__icon md-icon"></span>
+          
+            <a href="../../../../core/kafka/network/SocketServer/" class="md-nav__link"
+              style="margin: initial; padding: initial; pointer-events: initial">
+          
+            Socket Server
+          </a>
+        </label>
+      
+      <nav class="md-nav" aria-label="Socket Server" data-md-level="5">
+        <label class="md-nav__title" for="__nav_7_2_1_2_1">
+          <span class="md-nav__icon md-icon"></span>
+          
+            <a href="../../../../core/kafka/network/SocketServer/" class="md-nav__link"
+              style="margin: initial; padding: initial; pointer-events: initial">
+          
+            Socket Server
+          </a>
+        </label>
+        <ul class="md-nav__list" data-md-scrollfix>
+          
+            
+              
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../../core/kafka/network/SocketServer/Acceptor/" class="md-nav__link">
+        Acceptor
+      </a>
+    </li>
+  
+
+            
+          
+            
+              
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../../core/kafka/network/SocketServer/Processor/" class="md-nav__link">
+        Processor
+      </a>
+    </li>
+  
+
+            
+          
+        </ul>
+      </nav>
+    </li>
+  
+
+            
+          
+            
+              
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../../core/kafka/network/RequestChannel/" class="md-nav__link">
+        Request Channel
+      </a>
+    </li>
+  
+
+            
+          
+        </ul>
+      </nav>
+    </li>
+  
+
+            
+          
+            
+              
+  
+  
+  
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+      
+        <input class="md-nav__toggle md-toggle" data-md-toggle="__nav_7_2_1_3" type="checkbox" id="__nav_7_2_1_3" >
+      
+      
+      
+      
+        <label class="md-nav__link" for="__nav_7_2_1_3">
+          <span class="md-nav__icon md-icon"></span>
+          
+            Server
+          
+        </label>
+      
+      <nav class="md-nav" aria-label="Server" data-md-level="4">
+        <label class="md-nav__title" for="__nav_7_2_1_3">
+          <span class="md-nav__icon md-icon"></span>
+          
+            Server
+          
+        </label>
+        <ul class="md-nav__list" data-md-scrollfix>
+          
+            
+              
+  
+  
+  
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+      
+        <input class="md-nav__toggle md-toggle" data-md-toggle="__nav_7_2_1_3_1" type="checkbox" id="__nav_7_2_1_3_1" >
+      
+      
+      
+      
+        <label class="md-nav__link" for="__nav_7_2_1_3_1">
+          <span class="md-nav__icon md-icon"></span>
+          
+            <a href="../../../../core/kafka/server/KafkaRequestHandler/" class="md-nav__link"
+              style="margin: initial; padding: initial; pointer-events: initial">
+          
+            Kafka Request Handler
+          </a>
+        </label>
+      
+      <nav class="md-nav" aria-label="Kafka Request Handler" data-md-level="5">
+        <label class="md-nav__title" for="__nav_7_2_1_3_1">
+          <span class="md-nav__icon md-icon"></span>
+          
+            <a href="../../../../core/kafka/server/KafkaRequestHandler/" class="md-nav__link"
+              style="margin: initial; padding: initial; pointer-events: initial">
+          
+            Kafka Request Handler
+          </a>
+        </label>
+        <ul class="md-nav__list" data-md-scrollfix>
+          
+            
+              
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../../core/kafka/server/KafkaRequestHandler/KafkaRequestHandlerPool/" class="md-nav__link">
+        Kafka Request Handler Pool
+      </a>
+    </li>
+  
+
+            
+          
+        </ul>
+      </nav>
+    </li>
+  
+
+            
+          
+            
+              
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../../core/kafka/server/KafkaApis/" class="md-nav__link">
+        Kafka Apis
+      </a>
+    </li>
+  
+
+            
+          
+            
+              
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../../core/kafka/server/KafkaServer/" class="md-nav__link">
+        Kafka Server
+      </a>
+    </li>
+  
+
+            
+          
+        </ul>
+      </nav>
+    </li>
+  
+
+            
+          
+            
+              
+  
+  
+  
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+      
+        <input class="md-nav__toggle md-toggle" data-md-toggle="__nav_7_2_1_4" type="checkbox" id="__nav_7_2_1_4" >
+      
+      
+      
+      
+        <label class="md-nav__link" for="__nav_7_2_1_4">
+          <span class="md-nav__icon md-icon"></span>
+          
+            Utils
+          
+        </label>
+      
+      <nav class="md-nav" aria-label="Utils" data-md-level="4">
+        <label class="md-nav__title" for="__nav_7_2_1_4">
+          <span class="md-nav__icon md-icon"></span>
+          
+            Utils
+          
+        </label>
+        <ul class="md-nav__list" data-md-scrollfix>
+          
+            
+              
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../../core/kafka/utils/KafkaScheduler/" class="md-nav__link">
+        Kafka Scheduler
+      </a>
+    </li>
+  
+
+            
+          
+        </ul>
+      </nav>
+    </li>
+  
+
+            
+          
+        </ul>
+      </nav>
+    </li>
+  
+
+            
+          
+        </ul>
+      </nav>
+    </li>
+  
+
+            
+          
+        </ul>
+      </nav>
+    </li>
+  
+
+    
+      
+      
+      
+
+  
+  
+  
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+      
+        <input class="md-nav__toggle md-toggle" data-md-toggle="__nav_8" type="checkbox" id="__nav_8" >
+      
+      
+      
+      
+        <label class="md-nav__link" for="__nav_8">
+          <span class="md-nav__icon md-icon"></span>
+          
+            7. 其他
+          
+        </label>
+      
+      <nav class="md-nav" aria-label="7. 其他" data-md-level="1">
+        <label class="md-nav__title" for="__nav_8">
+          <span class="md-nav__icon md-icon"></span>
+          
+            7. 其他
+          
+        </label>
+        <ul class="md-nav__list" data-md-scrollfix>
+          
+            
+              
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../../../7-other/1-topic-name-limit/" class="md-nav__link">
+        7.1 topic 名规则
+      </a>
+    </li>
+  
+
+            
+          
+        </ul>
+      </nav>
+    </li>
+  
+
+    
+  </ul>
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+            
+              
+              <div class="md-sidebar md-sidebar--secondary" data-md-component="sidebar" data-md-type="toc" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+<nav class="md-nav md-nav--secondary" aria-label="目录">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      目录
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#_1" class="md-nav__link">
+    属性
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#_2" class="md-nav__link">
+    构造方法
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#send" class="md-nav__link">
+    send
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#dosend" class="md-nav__link">
+    doSend
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+          
+          <div class="md-content" data-md-component="content">
+            <article class="md-content__inner md-typeset">
+              
+                
+                  <a href="https://github.com/mapan1984/kafka-design/edit/master/docs/6-src/clients/clients/producer/KafkaProducer.md" title="编辑此页" class="md-content__button md-icon">
+                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20.71 7.04c.39-.39.39-1.04 0-1.41l-2.34-2.34c-.37-.39-1.02-.39-1.41 0l-1.84 1.83 3.75 3.75M3 17.25V21h3.75L17.81 9.93l-3.75-3.75L3 17.25z"/></svg>
+                  </a>
+                
+                
+                <h1 id="producer">Producer</h1>
+<ol>
+<li>生产者维持一个 pool of buffer space 存储还没有发往 server 的 record</li>
+<li>同时有背后的 I/O thread 负责将 record 发往 server</li>
+<li><code>send</code> 方法是异步的，当调用时把 record 加入一个 buffer of pending record sends 并立即返回。这允许 producer 通过打包单独的 record 提供效率</li>
+<li><code>batch.size</code>: producer 为每个 partition 维护一个未发送 record 的 buffer，buffer 的大小由 <code>batch.size</code> 配置。增加配置可以让 record 打包增大，提高发送效率，但会增加内存使用，降低发送时效</li>
+<li><code>linger.ms</code>: 默认情况下，a buffer is available to send immediately even if there is additional unused space in the buffseer</li>
+<li><code>buffer.memory</code>: 控制 producer 可以使用的 buffer 的大小，如果 record 发送快于 producer 与 server 的交互，buffer 可用空间会被耗尽，<code>send</code> 调用会被阻塞。<code>max.block.ms</code> 配置阻塞的超时时间，如果超时，会抛出 <code>TimeoutException</code> 异常</li>
+<li>0.11 之后，Kafka 支持幂等(idempotent) 与事务(transacional)<ol>
+<li>为了支持幂等，<code>enable.idempotence</code> 必须被设置为 <code>true</code>，设置之后 <code>retries</code> 会被默认设为 <code>Integer.MAX_VALUE</code> 并且 <code>acks</code> 会默认设为 <code>all</code></li>
+<li>为了支持事务，<code>transactional.id</code> 必须被设置，设置之后，<code>enable.idempotence</code> 会自动开启。此外:<ol>
+<li>topic which are included in transactions 应该 configured for durability，具体的: <code>replication.factor</code> 至少为 3，<code>min.insync.replicas</code> 应该设置为 2。</li>
+<li>为了端到端的事务性保证，consumer 应该被设置为只读 committed messages</li>
+</ol>
+</li>
+</ol>
+</li>
+</ol>
+<h2 id="_1">属性</h2>
+<div class="highlight"><pre><span></span><code><span class="kd">private</span> <span class="kd">final</span> <span class="n">Logger</span> <span class="n">log</span><span class="p">;</span>
+<span class="kd">private</span> <span class="kd">static</span> <span class="kd">final</span> <span class="n">String</span> <span class="n">JMX_PREFIX</span> <span class="o">=</span> <span class="s">&quot;kafka.producer&quot;</span><span class="p">;</span>
+<span class="kd">public</span> <span class="kd">static</span> <span class="kd">final</span> <span class="n">String</span> <span class="n">NETWORK_THREAD_PREFIX</span> <span class="o">=</span> <span class="s">&quot;kafka-producer-network-thread&quot;</span><span class="p">;</span>
+<span class="kd">public</span> <span class="kd">static</span> <span class="kd">final</span> <span class="n">String</span> <span class="n">PRODUCER_METRIC_GROUP_NAME</span> <span class="o">=</span> <span class="s">&quot;producer-metrics&quot;</span><span class="p">;</span>
+
+<span class="kd">private</span> <span class="kd">final</span> <span class="n">String</span> <span class="n">clientId</span><span class="p">;</span>
+<span class="c1">// Visible for testing</span>
+<span class="kd">final</span> <span class="n">Metrics</span> <span class="n">metrics</span><span class="p">;</span>
+<span class="kd">private</span> <span class="kd">final</span> <span class="n">Partitioner</span> <span class="n">partitioner</span><span class="p">;</span>
+<span class="kd">private</span> <span class="kd">final</span> <span class="kt">int</span> <span class="n">maxRequestSize</span><span class="p">;</span>
+<span class="kd">private</span> <span class="kd">final</span> <span class="kt">long</span> <span class="n">totalMemorySize</span><span class="p">;</span>
+<span class="kd">private</span> <span class="kd">final</span> <span class="n">ProducerMetadata</span> <span class="n">metadata</span><span class="p">;</span>
+<span class="kd">private</span> <span class="kd">final</span> <span class="n">RecordAccumulator</span> <span class="n">accumulator</span><span class="p">;</span>
+<span class="kd">private</span> <span class="kd">final</span> <span class="n">Sender</span> <span class="n">sender</span><span class="p">;</span>
+<span class="kd">private</span> <span class="kd">final</span> <span class="n">Thread</span> <span class="n">ioThread</span><span class="p">;</span>
+<span class="kd">private</span> <span class="kd">final</span> <span class="n">CompressionType</span> <span class="n">compressionType</span><span class="p">;</span>
+<span class="kd">private</span> <span class="kd">final</span> <span class="n">Sensor</span> <span class="n">errors</span><span class="p">;</span>
+<span class="kd">private</span> <span class="kd">final</span> <span class="n">Time</span> <span class="n">time</span><span class="p">;</span>
+<span class="kd">private</span> <span class="kd">final</span> <span class="n">Serializer</span><span class="o">&lt;</span><span class="n">K</span><span class="o">&gt;</span> <span class="n">keySerializer</span><span class="p">;</span>
+<span class="kd">private</span> <span class="kd">final</span> <span class="n">Serializer</span><span class="o">&lt;</span><span class="n">V</span><span class="o">&gt;</span> <span class="n">valueSerializer</span><span class="p">;</span>
+<span class="kd">private</span> <span class="kd">final</span> <span class="n">ProducerConfig</span> <span class="n">producerConfig</span><span class="p">;</span>
+<span class="kd">private</span> <span class="kd">final</span> <span class="kt">long</span> <span class="n">maxBlockTimeMs</span><span class="p">;</span>
+<span class="kd">private</span> <span class="kd">final</span> <span class="n">ProducerInterceptors</span><span class="o">&lt;</span><span class="n">K</span><span class="p">,</span> <span class="n">V</span><span class="o">&gt;</span> <span class="n">interceptors</span><span class="p">;</span>
+<span class="kd">private</span> <span class="kd">final</span> <span class="n">ApiVersions</span> <span class="n">apiVersions</span><span class="p">;</span>
+<span class="kd">private</span> <span class="kd">final</span> <span class="n">TransactionManager</span> <span class="n">transactionManager</span><span class="p">;</span>
+</code></pre></div>
+<h2 id="_2">构造方法</h2>
+<p><code>KafkaProducer</code> 构造方法中，初始如下关键属性</p>
+<ul>
+<li><code>this.partitioner</code> 分区算法</li>
+<li><code>this.accumulator = new RecordAccumulator</code></li>
+<li><code>this.metadata = new ProducerMetadata</code>
+    <div class="highlight"><pre><span></span><code><span class="k">this</span><span class="p">.</span><span class="na">metadata</span> <span class="o">=</span> <span class="k">new</span> <span class="n">ProducerMetadata</span><span class="p">(</span><span class="n">retryBackoffMs</span><span class="p">,</span>
+        <span class="n">config</span><span class="p">.</span><span class="na">getLong</span><span class="p">(</span><span class="n">ProducerConfig</span><span class="p">.</span><span class="na">METADATA_MAX_AGE_CONFIG</span><span class="p">),</span>
+        <span class="n">config</span><span class="p">.</span><span class="na">getLong</span><span class="p">(</span><span class="n">ProducerConfig</span><span class="p">.</span><span class="na">METADATA_MAX_IDLE_CONFIG</span><span class="p">),</span>
+        <span class="n">logContext</span><span class="p">,</span>
+        <span class="n">clusterResourceListeners</span><span class="p">,</span>
+        <span class="n">Time</span><span class="p">.</span><span class="na">SYSTEM</span><span class="p">);</span>
+<span class="k">this</span><span class="p">.</span><span class="na">metadata</span><span class="p">.</span><span class="na">bootstrap</span><span class="p">(</span><span class="n">addresses</span><span class="p">);</span>
+</code></pre></div></li>
+<li><code>this.sender = newSender(logContext, kafkaClient, this.metadata)</code></li>
+</ul>
+<p>同时开启线程，运行 <code>sender</code></p>
+<div class="highlight"><pre><span></span><code><span class="k">this</span><span class="p">.</span><span class="na">ioThread</span> <span class="o">=</span> <span class="k">new</span> <span class="n">KafkaThread</span><span class="p">(</span><span class="n">ioThreadName</span><span class="p">,</span> <span class="k">this</span><span class="p">.</span><span class="na">sender</span><span class="p">,</span> <span class="kc">true</span><span class="p">);</span>
+<span class="k">this</span><span class="p">.</span><span class="na">ioThread</span><span class="p">.</span><span class="na">start</span><span class="p">();</span>
+</code></pre></div>
+<h2 id="send">send</h2>
+<div class="highlight"><pre><span></span><code><span class="cm">/**</span>
+<span class="cm"> * Asynchronously send a record to a topic and invoke the provided callback when the send has been acknowledged.</span>
+<span class="cm"> * &lt;p&gt;</span>
+<span class="cm"> * The send is asynchronous and this method will return immediately once the record has been stored in the buffer of</span>
+<span class="cm"> * records waiting to be sent. This allows sending many records in parallel without blocking to wait for the</span>
+<span class="cm"> * response after each one.</span>
+<span class="cm"> * &lt;p&gt;</span>
+<span class="cm"> * The result of the send is a {@link RecordMetadata} specifying the partition the record was sent to, the offset</span>
+<span class="cm"> * it was assigned and the timestamp of the record. If</span>
+<span class="cm"> * {@link org.apache.kafka.common.record.TimestampType#CREATE_TIME CreateTime} is used by the topic, the timestamp</span>
+<span class="cm"> * will be the user provided timestamp or the record send time if the user did not specify a timestamp for the</span>
+<span class="cm"> * record. If {@link org.apache.kafka.common.record.TimestampType#LOG_APPEND_TIME LogAppendTime} is used for the</span>
+<span class="cm"> * topic, the timestamp will be the Kafka broker local time when the message is appended.</span>
+<span class="cm"> * &lt;p&gt;</span>
+<span class="cm"> * Since the send call is asynchronous it returns a {@link java.util.concurrent.Future Future} for the</span>
+<span class="cm"> * {@link RecordMetadata} that will be assigned to this record. Invoking {@link java.util.concurrent.Future#get()</span>
+<span class="cm"> * get()} on this future will block until the associated request completes and then return the metadata for the record</span>
+<span class="cm"> * or throw any exception that occurred while sending the record.</span>
+<span class="cm"> * &lt;p&gt;</span>
+<span class="cm"> * If you want to simulate a simple blocking call you can call the &lt;code&gt;get()&lt;/code&gt; method immediately:</span>
+<span class="cm"> *</span>
+<span class="cm"> * &lt;pre&gt;</span>
+<span class="cm"> * {@code</span>
+<span class="cm"> * byte[] key = &quot;key&quot;.getBytes();</span>
+<span class="cm"> * byte[] value = &quot;value&quot;.getBytes();</span>
+<span class="cm"> * ProducerRecord&lt;byte[],byte[]&gt; record = new ProducerRecord&lt;byte[],byte[]&gt;(&quot;my-topic&quot;, key, value)</span>
+<span class="cm"> * producer.send(record).get();</span>
+<span class="cm"> * }&lt;/pre&gt;</span>
+<span class="cm"> * &lt;p&gt;</span>
+<span class="cm"> * Fully non-blocking usage can make use of the {@link Callback} parameter to provide a callback that</span>
+<span class="cm"> * will be invoked when the request is complete.</span>
+<span class="cm"> *</span>
+<span class="cm"> * &lt;pre&gt;</span>
+<span class="cm"> * {@code</span>
+<span class="cm"> * ProducerRecord&lt;byte[],byte[]&gt; record = new ProducerRecord&lt;byte[],byte[]&gt;(&quot;the-topic&quot;, key, value);</span>
+<span class="cm"> * producer.send(myRecord,</span>
+<span class="cm"> *               new Callback() {</span>
+<span class="cm"> *                   public void onCompletion(RecordMetadata metadata, Exception e) {</span>
+<span class="cm"> *                       if(e != null) {</span>
+<span class="cm"> *                          e.printStackTrace();</span>
+<span class="cm"> *                       } else {</span>
+<span class="cm"> *                          System.out.println(&quot;The offset of the record we just sent is: &quot; + metadata.offset());</span>
+<span class="cm"> *                       }</span>
+<span class="cm"> *                   }</span>
+<span class="cm"> *               });</span>
+<span class="cm"> * }</span>
+<span class="cm"> * &lt;/pre&gt;</span>
+<span class="cm"> *</span>
+<span class="cm"> * Callbacks for records being sent to the same partition are guaranteed to execute in order. That is, in the</span>
+<span class="cm"> * following example &lt;code&gt;callback1&lt;/code&gt; is guaranteed to execute before &lt;code&gt;callback2&lt;/code&gt;:</span>
+<span class="cm"> *</span>
+<span class="cm"> * &lt;pre&gt;</span>
+<span class="cm"> * {@code</span>
+<span class="cm"> * producer.send(new ProducerRecord&lt;byte[],byte[]&gt;(topic, partition, key1, value1), callback1);</span>
+<span class="cm"> * producer.send(new ProducerRecord&lt;byte[],byte[]&gt;(topic, partition, key2, value2), callback2);</span>
+<span class="cm"> * }</span>
+<span class="cm"> * &lt;/pre&gt;</span>
+<span class="cm"> * &lt;p&gt;</span>
+<span class="cm"> * When used as part of a transaction, it is not necessary to define a callback or check the result of the future</span>
+<span class="cm"> * in order to detect errors from &lt;code&gt;send&lt;/code&gt;. If any of the send calls failed with an irrecoverable error,</span>
+<span class="cm"> * the final {@link #commitTransaction()} call will fail and throw the exception from the last failed send. When</span>
+<span class="cm"> * this happens, your application should call {@link #abortTransaction()} to reset the state and continue to send</span>
+<span class="cm"> * data.</span>
+<span class="cm"> * &lt;/p&gt;</span>
+<span class="cm"> * &lt;p&gt;</span>
+<span class="cm"> * Some transactional send errors cannot be resolved with a call to {@link #abortTransaction()}.  In particular,</span>
+<span class="cm"> * if a transactional send finishes with a {@link ProducerFencedException}, a {@link org.apache.kafka.common.errors.OutOfOrderSequenceException},</span>
+<span class="cm"> * a {@link org.apache.kafka.common.errors.UnsupportedVersionException}, or an</span>
+<span class="cm"> * {@link org.apache.kafka.common.errors.AuthorizationException}, then the only option left is to call {@link #close()}.</span>
+<span class="cm"> * Fatal errors cause the producer to enter a defunct state in which future API calls will continue to raise</span>
+<span class="cm"> * the same underyling error wrapped in a new {@link KafkaException}.</span>
+<span class="cm"> * &lt;/p&gt;</span>
+<span class="cm"> * &lt;p&gt;</span>
+<span class="cm"> * It is a similar picture when idempotence is enabled, but no &lt;code&gt;transactional.id&lt;/code&gt; has been configured.</span>
+<span class="cm"> * In this case, {@link org.apache.kafka.common.errors.UnsupportedVersionException} and</span>
+<span class="cm"> * {@link org.apache.kafka.common.errors.AuthorizationException} are considered fatal errors. However,</span>
+<span class="cm"> * {@link ProducerFencedException} does not need to be handled. Additionally, it is possible to continue</span>
+<span class="cm"> * sending after receiving an {@link org.apache.kafka.common.errors.OutOfOrderSequenceException}, but doing so</span>
+<span class="cm"> * can result in out of order delivery of pending messages. To ensure proper ordering, you should close the</span>
+<span class="cm"> * producer and create a new instance.</span>
+<span class="cm"> * &lt;/p&gt;</span>
+<span class="cm"> * &lt;p&gt;</span>
+<span class="cm"> * If the message format of the destination topic is not upgraded to 0.11.0.0, idempotent and transactional</span>
+<span class="cm"> * produce requests will fail with an {@link org.apache.kafka.common.errors.UnsupportedForMessageFormatException}</span>
+<span class="cm"> * error. If this is encountered during a transaction, it is possible to abort and continue. But note that future</span>
+<span class="cm"> * sends to the same topic will continue receiving the same exception until the topic is upgraded.</span>
+<span class="cm"> * &lt;/p&gt;</span>
+<span class="cm"> * &lt;p&gt;</span>
+<span class="cm"> * Note that callbacks will generally execute in the I/O thread of the producer and so should be reasonably fast or</span>
+<span class="cm"> * they will delay the sending of messages from other threads. If you want to execute blocking or computationally</span>
+<span class="cm"> * expensive callbacks it is recommended to use your own {@link java.util.concurrent.Executor} in the callback body</span>
+<span class="cm"> * to parallelize processing.</span>
+<span class="cm"> *</span>
+<span class="cm"> * @param record The record to send</span>
+<span class="cm"> * @param callback A user-supplied callback to execute when the record has been acknowledged by the server (null</span>
+<span class="cm"> *        indicates no callback)</span>
+<span class="cm"> *</span>
+<span class="cm"> * @throws AuthenticationException if authentication fails. See the exception for more details</span>
+<span class="cm"> * @throws AuthorizationException fatal error indicating that the producer is not allowed to write</span>
+<span class="cm"> * @throws IllegalStateException if a transactional.id has been configured and no transaction has been started, or</span>
+<span class="cm"> *                               when send is invoked after producer has been closed.</span>
+<span class="cm"> * @throws InterruptException If the thread is interrupted while blocked</span>
+<span class="cm"> * @throws SerializationException If the key or value are not valid objects given the configured serializers</span>
+<span class="cm"> * @throws KafkaException If a Kafka related error occurs that does not belong to the public API exceptions.</span>
+<span class="cm"> */</span>
+<span class="nd">@Override</span>
+<span class="kd">public</span> <span class="n">Future</span><span class="o">&lt;</span><span class="n">RecordMetadata</span><span class="o">&gt;</span> <span class="nf">send</span><span class="p">(</span><span class="n">ProducerRecord</span><span class="o">&lt;</span><span class="n">K</span><span class="p">,</span> <span class="n">V</span><span class="o">&gt;</span> <span class="n">record</span><span class="p">,</span> <span class="n">Callback</span> <span class="n">callback</span><span class="p">)</span> <span class="p">{</span>
+    <span class="c1">// intercept the record, which can be potentially modified; this method does not throw exceptions</span>
+    <span class="n">ProducerRecord</span><span class="o">&lt;</span><span class="n">K</span><span class="p">,</span> <span class="n">V</span><span class="o">&gt;</span> <span class="n">interceptedRecord</span> <span class="o">=</span> <span class="k">this</span><span class="p">.</span><span class="na">interceptors</span><span class="p">.</span><span class="na">onSend</span><span class="p">(</span><span class="n">record</span><span class="p">);</span>
+    <span class="k">return</span> <span class="n">doSend</span><span class="p">(</span><span class="n">interceptedRecord</span><span class="p">,</span> <span class="n">callback</span><span class="p">);</span>
+<span class="p">}</span>
+</code></pre></div>
+<h2 id="dosend">doSend</h2>
+<div class="highlight"><pre><span></span><code><span class="cm">/**</span>
+<span class="cm"> * Implementation of asynchronously send a record to a topic.</span>
+<span class="cm"> */</span>
+<span class="kd">private</span> <span class="n">Future</span><span class="o">&lt;</span><span class="n">RecordMetadata</span><span class="o">&gt;</span> <span class="nf">doSend</span><span class="p">(</span><span class="n">ProducerRecord</span><span class="o">&lt;</span><span class="n">K</span><span class="p">,</span> <span class="n">V</span><span class="o">&gt;</span> <span class="n">record</span><span class="p">,</span> <span class="n">Callback</span> <span class="n">callback</span><span class="p">)</span> <span class="p">{</span>
+    <span class="n">TopicPartition</span> <span class="n">tp</span> <span class="o">=</span> <span class="kc">null</span><span class="p">;</span>
+    <span class="k">try</span> <span class="p">{</span>
+        <span class="n">throwIfProducerClosed</span><span class="p">();</span>
+        <span class="c1">// first make sure the metadata for the topic is available</span>
+        <span class="kt">long</span> <span class="n">nowMs</span> <span class="o">=</span> <span class="n">time</span><span class="p">.</span><span class="na">milliseconds</span><span class="p">();</span>
+        <span class="n">ClusterAndWaitTime</span> <span class="n">clusterAndWaitTime</span><span class="p">;</span>
+        <span class="k">try</span> <span class="p">{</span>
+            <span class="n">clusterAndWaitTime</span> <span class="o">=</span> <span class="n">waitOnMetadata</span><span class="p">(</span><span class="n">record</span><span class="p">.</span><span class="na">topic</span><span class="p">(),</span> <span class="n">record</span><span class="p">.</span><span class="na">partition</span><span class="p">(),</span> <span class="n">nowMs</span><span class="p">,</span> <span class="n">maxBlockTimeMs</span><span class="p">);</span>
+        <span class="p">}</span> <span class="k">catch</span> <span class="p">(</span><span class="n">KafkaException</span> <span class="n">e</span><span class="p">)</span> <span class="p">{</span>
+            <span class="k">if</span> <span class="p">(</span><span class="n">metadata</span><span class="p">.</span><span class="na">isClosed</span><span class="p">())</span>
+                <span class="k">throw</span> <span class="k">new</span> <span class="n">KafkaException</span><span class="p">(</span><span class="s">&quot;Producer closed while send in progress&quot;</span><span class="p">,</span> <span class="n">e</span><span class="p">);</span>
+            <span class="k">throw</span> <span class="n">e</span><span class="p">;</span>
+        <span class="p">}</span>
+        <span class="n">nowMs</span> <span class="o">+=</span> <span class="n">clusterAndWaitTime</span><span class="p">.</span><span class="na">waitedOnMetadataMs</span><span class="p">;</span>
+        <span class="kt">long</span> <span class="n">remainingWaitMs</span> <span class="o">=</span> <span class="n">Math</span><span class="p">.</span><span class="na">max</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="n">maxBlockTimeMs</span> <span class="o">-</span> <span class="n">clusterAndWaitTime</span><span class="p">.</span><span class="na">waitedOnMetadataMs</span><span class="p">);</span>
+        <span class="n">Cluster</span> <span class="n">cluster</span> <span class="o">=</span> <span class="n">clusterAndWaitTime</span><span class="p">.</span><span class="na">cluster</span><span class="p">;</span>
+        <span class="c1">// 3. 序列化 key, value</span>
+        <span class="kt">byte</span><span class="o">[]</span> <span class="n">serializedKey</span><span class="p">;</span>
+        <span class="k">try</span> <span class="p">{</span>
+            <span class="n">serializedKey</span> <span class="o">=</span> <span class="n">keySerializer</span><span class="p">.</span><span class="na">serialize</span><span class="p">(</span><span class="n">record</span><span class="p">.</span><span class="na">topic</span><span class="p">(),</span> <span class="n">record</span><span class="p">.</span><span class="na">headers</span><span class="p">(),</span> <span class="n">record</span><span class="p">.</span><span class="na">key</span><span class="p">());</span>
+        <span class="p">}</span> <span class="k">catch</span> <span class="p">(</span><span class="n">ClassCastException</span> <span class="n">cce</span><span class="p">)</span> <span class="p">{</span>
+            <span class="k">throw</span> <span class="k">new</span> <span class="n">SerializationException</span><span class="p">(</span><span class="s">&quot;Can&#39;t convert key of class &quot;</span> <span class="o">+</span> <span class="n">record</span><span class="p">.</span><span class="na">key</span><span class="p">().</span><span class="na">getClass</span><span class="p">().</span><span class="na">getName</span><span class="p">()</span> <span class="o">+</span>
+                    <span class="s">&quot; to class &quot;</span> <span class="o">+</span> <span class="n">producerConfig</span><span class="p">.</span><span class="na">getClass</span><span class="p">(</span><span class="n">ProducerConfig</span><span class="p">.</span><span class="na">KEY_SERIALIZER_CLASS_CONFIG</span><span class="p">).</span><span class="na">getName</span><span class="p">()</span> <span class="o">+</span>
+                    <span class="s">&quot; specified in key.serializer&quot;</span><span class="p">,</span> <span class="n">cce</span><span class="p">);</span>
+        <span class="p">}</span>
+        <span class="kt">byte</span><span class="o">[]</span> <span class="n">serializedValue</span><span class="p">;</span>
+        <span class="k">try</span> <span class="p">{</span>
+            <span class="n">serializedValue</span> <span class="o">=</span> <span class="n">valueSerializer</span><span class="p">.</span><span class="na">serialize</span><span class="p">(</span><span class="n">record</span><span class="p">.</span><span class="na">topic</span><span class="p">(),</span> <span class="n">record</span><span class="p">.</span><span class="na">headers</span><span class="p">(),</span> <span class="n">record</span><span class="p">.</span><span class="na">value</span><span class="p">());</span>
+        <span class="p">}</span> <span class="k">catch</span> <span class="p">(</span><span class="n">ClassCastException</span> <span class="n">cce</span><span class="p">)</span> <span class="p">{</span>
+            <span class="k">throw</span> <span class="k">new</span> <span class="n">SerializationException</span><span class="p">(</span><span class="s">&quot;Can&#39;t convert value of class &quot;</span> <span class="o">+</span> <span class="n">record</span><span class="p">.</span><span class="na">value</span><span class="p">().</span><span class="na">getClass</span><span class="p">().</span><span class="na">getName</span><span class="p">()</span> <span class="o">+</span>
+                    <span class="s">&quot; to class &quot;</span> <span class="o">+</span> <span class="n">producerConfig</span><span class="p">.</span><span class="na">getClass</span><span class="p">(</span><span class="n">ProducerConfig</span><span class="p">.</span><span class="na">VALUE_SERIALIZER_CLASS_CONFIG</span><span class="p">).</span><span class="na">getName</span><span class="p">()</span> <span class="o">+</span>
+                    <span class="s">&quot; specified in value.serializer&quot;</span><span class="p">,</span> <span class="n">cce</span><span class="p">);</span>
+        <span class="p">}</span>
+        <span class="c1">// 4. 计算消息所处分区</span>
+        <span class="kt">int</span> <span class="n">partition</span> <span class="o">=</span> <span class="n">partition</span><span class="p">(</span><span class="n">record</span><span class="p">,</span> <span class="n">serializedKey</span><span class="p">,</span> <span class="n">serializedValue</span><span class="p">,</span> <span class="n">cluster</span><span class="p">);</span>
+        <span class="n">tp</span> <span class="o">=</span> <span class="k">new</span> <span class="n">TopicPartition</span><span class="p">(</span><span class="n">record</span><span class="p">.</span><span class="na">topic</span><span class="p">(),</span> <span class="n">partition</span><span class="p">);</span>
+
+        <span class="n">setReadOnly</span><span class="p">(</span><span class="n">record</span><span class="p">.</span><span class="na">headers</span><span class="p">());</span>
+        <span class="n">Header</span><span class="o">[]</span> <span class="n">headers</span> <span class="o">=</span> <span class="n">record</span><span class="p">.</span><span class="na">headers</span><span class="p">().</span><span class="na">toArray</span><span class="p">();</span>
+
+        <span class="c1">// 5. 计算消息大小，确定不超过 `max.request.size`, `buffer.memory`</span>
+        <span class="kt">int</span> <span class="n">serializedSize</span> <span class="o">=</span> <span class="n">AbstractRecords</span><span class="p">.</span><span class="na">estimateSizeInBytesUpperBound</span><span class="p">(</span><span class="n">apiVersions</span><span class="p">.</span><span class="na">maxUsableProduceMagic</span><span class="p">(),</span>
+                <span class="n">compressionType</span><span class="p">,</span> <span class="n">serializedKey</span><span class="p">,</span> <span class="n">serializedValue</span><span class="p">,</span> <span class="n">headers</span><span class="p">);</span>
+        <span class="n">ensureValidRecordSize</span><span class="p">(</span><span class="n">serializedSize</span><span class="p">);</span>
+        <span class="c1">// 6. 获取消息 timestamp，如果没有就用当前时间</span>
+        <span class="kt">long</span> <span class="n">timestamp</span> <span class="o">=</span> <span class="n">record</span><span class="p">.</span><span class="na">timestamp</span><span class="p">()</span> <span class="o">==</span> <span class="kc">null</span> <span class="o">?</span> <span class="n">nowMs</span> <span class="p">:</span> <span class="n">record</span><span class="p">.</span><span class="na">timestamp</span><span class="p">();</span>
+        <span class="k">if</span> <span class="p">(</span><span class="n">log</span><span class="p">.</span><span class="na">isTraceEnabled</span><span class="p">())</span> <span class="p">{</span>
+            <span class="n">log</span><span class="p">.</span><span class="na">trace</span><span class="p">(</span><span class="s">&quot;Attempting to append record {} with callback {} to topic {} partition {}&quot;</span><span class="p">,</span> <span class="n">record</span><span class="p">,</span> <span class="n">callback</span><span class="p">,</span> <span class="n">record</span><span class="p">.</span><span class="na">topic</span><span class="p">(),</span> <span class="n">partition</span><span class="p">);</span>
+        <span class="p">}</span>
+        <span class="c1">// producer callback will make sure to call both &#39;callback&#39; and interceptor callback</span>
+        <span class="n">Callback</span> <span class="n">interceptCallback</span> <span class="o">=</span> <span class="k">new</span> <span class="n">InterceptorCallback</span><span class="o">&lt;&gt;</span><span class="p">(</span><span class="n">callback</span><span class="p">,</span> <span class="k">this</span><span class="p">.</span><span class="na">interceptors</span><span class="p">,</span> <span class="n">tp</span><span class="p">);</span>
+
+        <span class="k">if</span> <span class="p">(</span><span class="n">transactionManager</span> <span class="o">!=</span> <span class="kc">null</span> <span class="o">&amp;&amp;</span> <span class="n">transactionManager</span><span class="p">.</span><span class="na">isTransactional</span><span class="p">())</span> <span class="p">{</span>
+            <span class="n">transactionManager</span><span class="p">.</span><span class="na">failIfNotReadyForSend</span><span class="p">();</span>
+        <span class="p">}</span>
+        <span class="c1">// 7. 将消息追加到 accumulator</span>
+        <span class="n">RecordAccumulator</span><span class="p">.</span><span class="na">RecordAppendResult</span> <span class="n">result</span> <span class="o">=</span> <span class="n">accumulator</span><span class="p">.</span><span class="na">append</span><span class="p">(</span><span class="n">tp</span><span class="p">,</span> <span class="n">timestamp</span><span class="p">,</span> <span class="n">serializedKey</span><span class="p">,</span>
+                <span class="n">serializedValue</span><span class="p">,</span> <span class="n">headers</span><span class="p">,</span> <span class="n">interceptCallback</span><span class="p">,</span> <span class="n">remainingWaitMs</span><span class="p">,</span> <span class="kc">true</span><span class="p">,</span> <span class="n">nowMs</span><span class="p">);</span>
+
+        <span class="k">if</span> <span class="p">(</span><span class="n">result</span><span class="p">.</span><span class="na">abortForNewBatch</span><span class="p">)</span> <span class="p">{</span>
+            <span class="kt">int</span> <span class="n">prevPartition</span> <span class="o">=</span> <span class="n">partition</span><span class="p">;</span>
+            <span class="n">partitioner</span><span class="p">.</span><span class="na">onNewBatch</span><span class="p">(</span><span class="n">record</span><span class="p">.</span><span class="na">topic</span><span class="p">(),</span> <span class="n">cluster</span><span class="p">,</span> <span class="n">prevPartition</span><span class="p">);</span>
+            <span class="n">partition</span> <span class="o">=</span> <span class="n">partition</span><span class="p">(</span><span class="n">record</span><span class="p">,</span> <span class="n">serializedKey</span><span class="p">,</span> <span class="n">serializedValue</span><span class="p">,</span> <span class="n">cluster</span><span class="p">);</span>
+            <span class="n">tp</span> <span class="o">=</span> <span class="k">new</span> <span class="n">TopicPartition</span><span class="p">(</span><span class="n">record</span><span class="p">.</span><span class="na">topic</span><span class="p">(),</span> <span class="n">partition</span><span class="p">);</span>
+            <span class="k">if</span> <span class="p">(</span><span class="n">log</span><span class="p">.</span><span class="na">isTraceEnabled</span><span class="p">())</span> <span class="p">{</span>
+                <span class="n">log</span><span class="p">.</span><span class="na">trace</span><span class="p">(</span><span class="s">&quot;Retrying append due to new batch creation for topic {} partition {}. The old partition was {}&quot;</span><span class="p">,</span> <span class="n">record</span><span class="p">.</span><span class="na">topic</span><span class="p">(),</span> <span class="n">partition</span><span class="p">,</span> <span class="n">prevPartition</span><span class="p">);</span>
+            <span class="p">}</span>
+            <span class="c1">// producer callback will make sure to call both &#39;callback&#39; and interceptor callback</span>
+            <span class="n">interceptCallback</span> <span class="o">=</span> <span class="k">new</span> <span class="n">InterceptorCallback</span><span class="o">&lt;&gt;</span><span class="p">(</span><span class="n">callback</span><span class="p">,</span> <span class="k">this</span><span class="p">.</span><span class="na">interceptors</span><span class="p">,</span> <span class="n">tp</span><span class="p">);</span>
+
+            <span class="n">result</span> <span class="o">=</span> <span class="n">accumulator</span><span class="p">.</span><span class="na">append</span><span class="p">(</span><span class="n">tp</span><span class="p">,</span> <span class="n">timestamp</span><span class="p">,</span> <span class="n">serializedKey</span><span class="p">,</span>
+                <span class="n">serializedValue</span><span class="p">,</span> <span class="n">headers</span><span class="p">,</span> <span class="n">interceptCallback</span><span class="p">,</span> <span class="n">remainingWaitMs</span><span class="p">,</span> <span class="kc">false</span><span class="p">,</span> <span class="n">nowMs</span><span class="p">);</span>
+        <span class="p">}</span>
+
+        <span class="k">if</span> <span class="p">(</span><span class="n">transactionManager</span> <span class="o">!=</span> <span class="kc">null</span> <span class="o">&amp;&amp;</span> <span class="n">transactionManager</span><span class="p">.</span><span class="na">isTransactional</span><span class="p">())</span>
+            <span class="n">transactionManager</span><span class="p">.</span><span class="na">maybeAddPartitionToTransaction</span><span class="p">(</span><span class="n">tp</span><span class="p">);</span>
+
+        <span class="c1">// 8. 如果 `batch` 满了或者新创建了 `batch`，唤醒 sender</span>
+        <span class="k">if</span> <span class="p">(</span><span class="n">result</span><span class="p">.</span><span class="na">batchIsFull</span> <span class="o">||</span> <span class="n">result</span><span class="p">.</span><span class="na">newBatchCreated</span><span class="p">)</span> <span class="p">{</span>
+            <span class="n">log</span><span class="p">.</span><span class="na">trace</span><span class="p">(</span><span class="s">&quot;Waking up the sender since topic {} partition {} is either full or getting a new batch&quot;</span><span class="p">,</span> <span class="n">record</span><span class="p">.</span><span class="na">topic</span><span class="p">(),</span> <span class="n">partition</span><span class="p">);</span>
+            <span class="k">this</span><span class="p">.</span><span class="na">sender</span><span class="p">.</span><span class="na">wakeup</span><span class="p">();</span>
+        <span class="p">}</span>
+        <span class="k">return</span> <span class="n">result</span><span class="p">.</span><span class="na">future</span><span class="p">;</span>
+        <span class="c1">// handling exceptions and record the errors;</span>
+        <span class="c1">// for API exceptions return them in the future,</span>
+        <span class="c1">// for other exceptions throw directly</span>
+    <span class="p">}</span> <span class="k">catch</span> <span class="p">(</span><span class="n">ApiException</span> <span class="n">e</span><span class="p">)</span> <span class="p">{</span>
+        <span class="n">log</span><span class="p">.</span><span class="na">debug</span><span class="p">(</span><span class="s">&quot;Exception occurred during message send:&quot;</span><span class="p">,</span> <span class="n">e</span><span class="p">);</span>
+        <span class="k">if</span> <span class="p">(</span><span class="n">callback</span> <span class="o">!=</span> <span class="kc">null</span><span class="p">)</span>
+            <span class="n">callback</span><span class="p">.</span><span class="na">onCompletion</span><span class="p">(</span><span class="kc">null</span><span class="p">,</span> <span class="n">e</span><span class="p">);</span>
+        <span class="k">this</span><span class="p">.</span><span class="na">errors</span><span class="p">.</span><span class="na">record</span><span class="p">();</span>
+        <span class="k">this</span><span class="p">.</span><span class="na">interceptors</span><span class="p">.</span><span class="na">onSendError</span><span class="p">(</span><span class="n">record</span><span class="p">,</span> <span class="n">tp</span><span class="p">,</span> <span class="n">e</span><span class="p">);</span>
+        <span class="k">return</span> <span class="k">new</span> <span class="n">FutureFailure</span><span class="p">(</span><span class="n">e</span><span class="p">);</span>
+    <span class="p">}</span> <span class="k">catch</span> <span class="p">(</span><span class="n">InterruptedException</span> <span class="n">e</span><span class="p">)</span> <span class="p">{</span>
+        <span class="k">this</span><span class="p">.</span><span class="na">errors</span><span class="p">.</span><span class="na">record</span><span class="p">();</span>
+        <span class="k">this</span><span class="p">.</span><span class="na">interceptors</span><span class="p">.</span><span class="na">onSendError</span><span class="p">(</span><span class="n">record</span><span class="p">,</span> <span class="n">tp</span><span class="p">,</span> <span class="n">e</span><span class="p">);</span>
+        <span class="k">throw</span> <span class="k">new</span> <span class="n">InterruptException</span><span class="p">(</span><span class="n">e</span><span class="p">);</span>
+    <span class="p">}</span> <span class="k">catch</span> <span class="p">(</span><span class="n">KafkaException</span> <span class="n">e</span><span class="p">)</span> <span class="p">{</span>
+        <span class="k">this</span><span class="p">.</span><span class="na">errors</span><span class="p">.</span><span class="na">record</span><span class="p">();</span>
+        <span class="k">this</span><span class="p">.</span><span class="na">interceptors</span><span class="p">.</span><span class="na">onSendError</span><span class="p">(</span><span class="n">record</span><span class="p">,</span> <span class="n">tp</span><span class="p">,</span> <span class="n">e</span><span class="p">);</span>
+        <span class="k">throw</span> <span class="n">e</span><span class="p">;</span>
+    <span class="p">}</span> <span class="k">catch</span> <span class="p">(</span><span class="n">Exception</span> <span class="n">e</span><span class="p">)</span> <span class="p">{</span>
+        <span class="c1">// we notify interceptor about all exceptions, since onSend is called before anything else in this method</span>
+        <span class="k">this</span><span class="p">.</span><span class="na">interceptors</span><span class="p">.</span><span class="na">onSendError</span><span class="p">(</span><span class="n">record</span><span class="p">,</span> <span class="n">tp</span><span class="p">,</span> <span class="n">e</span><span class="p">);</span>
+        <span class="k">throw</span> <span class="n">e</span><span class="p">;</span>
+    <span class="p">}</span>
+<span class="p">}</span>
+</code></pre></div>
+                
+              
+              
+                
+
+
+              
+            </article>
+          </div>
+        </div>
+        
+      </main>
+      
+        
+<footer class="md-footer">
+  
+    <nav class="md-footer__inner md-grid" aria-label="Footer">
+      
+        
+        <a href="../internals/Sender/" class="md-footer__link md-footer__link--prev" aria-label="上一页: Sender" rel="prev">
+          <div class="md-footer__button md-icon">
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11h12z"/></svg>
+          </div>
+          <div class="md-footer__title">
+            <div class="md-ellipsis">
+              <span class="md-footer__direction">
+                上一页
+              </span>
+              Sender
+            </div>
+          </div>
+        </a>
+      
+      
+        
+        <a href="../../Metadata/" class="md-footer__link md-footer__link--next" aria-label="下一页: Metadata" rel="next">
+          <div class="md-footer__title">
+            <div class="md-ellipsis">
+              <span class="md-footer__direction">
+                下一页
+              </span>
+              Metadata
+            </div>
+          </div>
+          <div class="md-footer__button md-icon">
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M4 11v2h12l-5.5 5.5 1.42 1.42L19.84 12l-7.92-7.92L10.5 5.5 16 11H4z"/></svg>
+          </div>
+        </a>
+      
+    </nav>
+  
+  <div class="md-footer-meta md-typeset">
+    <div class="md-footer-meta__inner md-grid">
+      <div class="md-footer-copyright">
+        
+        
+          Made with
+          <a href="https://squidfunk.github.io/mkdocs-material/" target="_blank" rel="noopener">
+            Material for MkDocs
+          </a>
+        
+        
+      </div>
+      
+    </div>
+  </div>
+</footer>
+      
+    </div>
+    <div class="md-dialog" data-md-component="dialog">
+      <div class="md-dialog__inner md-typeset"></div>
+    </div>
+    <script id="__config" type="application/json">{"base": "../../../../..", "features": [], "translations": {"clipboard.copy": "\u590d\u5236", "clipboard.copied": "\u5df2\u590d\u5236", "search.config.lang": "ja", "search.config.pipeline": "trimmer, stemmer", "search.config.separator": "[\\uff0c\\u3002]+", "search.placeholder": "\u641c\u7d22", "search.result.placeholder": "\u952e\u5165\u4ee5\u5f00\u59cb\u641c\u7d22", "search.result.none": "\u6ca1\u6709\u627e\u5230\u7b26\u5408\u6761\u4ef6\u7684\u7ed3\u679c", "search.result.one": "\u627e\u5230 1 \u4e2a\u7b26\u5408\u6761\u4ef6\u7684\u7ed3\u679c", "search.result.other": "# \u4e2a\u7b26\u5408\u6761\u4ef6\u7684\u7ed3\u679c", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.term.missing": "Missing", "select.version.title": "Select version"}, "search": "../../../../../assets/javascripts/workers/search.f8263e09.min.js", "version": null}</script>
+    
+    
+      <script src="../../../../../assets/javascripts/bundle.4fc53ad4.min.js"></script>
+      
+    
+  </body>
+</html>

@@ -1,0 +1,2584 @@
+
+<!doctype html>
+<html lang="zh" class="no-js">
+  <head>
+    
+      <meta charset="utf-8">
+      <meta name="viewport" content="width=device-width,initial-scale=1">
+      
+        <meta name="description" content="kafka 设计实现解析">
+      
+      
+      
+        <meta name="author" content="mapan">
+      
+      
+        <link rel="canonical" href="https://mapan1984.github.io/kafka-design/1-server%20%E8%A7%A3%E6%9E%90/2-server%20%E7%BD%91%E7%BB%9C%E6%A8%A1%E5%9E%8B/">
+      
+      <link rel="icon" href="../../assets/images/favicon.png">
+      <meta name="generator" content="mkdocs-1.2.2, mkdocs-material-7.3.0">
+    
+    
+      
+        <title>1.2 server 网络模型 - kafka 设计实现解析</title>
+      
+    
+    
+      <link rel="stylesheet" href="../../assets/stylesheets/main.8b42a75e.min.css">
+      
+        
+        <link rel="stylesheet" href="../../assets/stylesheets/palette.3f5d1f46.min.css">
+        
+      
+    
+    
+    
+      
+        
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+        <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Roboto:300,400,400i,700%7CRoboto+Mono&display=fallback">
+        <style>:root{--md-text-font-family:"Roboto";--md-code-font-family:"Roboto Mono"}</style>
+      
+    
+    
+    
+    
+      
+
+
+    
+    
+  </head>
+  
+  
+    
+    
+      
+    
+    
+    
+    
+    <body dir="ltr" data-md-color-scheme="default" data-md-color-primary="blue-grey" data-md-color-accent="deep-orange">
+  
+    
+    <script>function __prefix(e){return new URL("../..",location).pathname+"."+e}function __get(e,t=localStorage){return JSON.parse(t.getItem(__prefix(e)))}</script>
+    
+      <script>var palette=__get("__palette");if(null!==palette&&"object"==typeof palette.color)for(var key in palette.color)document.body.setAttribute("data-md-color-"+key,palette.color[key])</script>
+    
+    <input class="md-toggle" data-md-toggle="drawer" type="checkbox" id="__drawer" autocomplete="off">
+    <input class="md-toggle" data-md-toggle="search" type="checkbox" id="__search" autocomplete="off">
+    <label class="md-overlay" for="__drawer"></label>
+    <div data-md-component="skip">
+      
+        
+        <a href="#12-server" class="md-skip">
+          跳转至
+        </a>
+      
+    </div>
+    <div data-md-component="announce">
+      
+    </div>
+    
+      
+
+<header class="md-header" data-md-component="header">
+  <nav class="md-header__inner md-grid" aria-label="Header">
+    <a href="../.." title="kafka 设计实现解析" class="md-header__button md-logo" aria-label="kafka 设计实现解析" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54z"/></svg>
+
+    </a>
+    <label class="md-header__button md-icon" for="__drawer">
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M3 6h18v2H3V6m0 5h18v2H3v-2m0 5h18v2H3v-2z"/></svg>
+    </label>
+    <div class="md-header__title" data-md-component="header-title">
+      <div class="md-header__ellipsis">
+        <div class="md-header__topic">
+          <span class="md-ellipsis">
+            kafka 设计实现解析
+          </span>
+        </div>
+        <div class="md-header__topic" data-md-component="header-topic">
+          <span class="md-ellipsis">
+            
+              1.2 server 网络模型
+            
+          </span>
+        </div>
+      </div>
+    </div>
+    
+      <form class="md-header__option" data-md-component="palette">
+        
+          
+          
+          <input class="md-option" data-md-color-media="" data-md-color-scheme="default" data-md-color-primary="blue-grey" data-md-color-accent="deep-orange"  aria-label="Switch to dark mode"  type="radio" name="__palette" id="__palette_1">
+          
+            <label class="md-header__button md-icon" title="Switch to dark mode" for="__palette_2" hidden>
+              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M17 6H7c-3.31 0-6 2.69-6 6s2.69 6 6 6h10c3.31 0 6-2.69 6-6s-2.69-6-6-6zm0 10H7c-2.21 0-4-1.79-4-4s1.79-4 4-4h10c2.21 0 4 1.79 4 4s-1.79 4-4 4zM7 9c-1.66 0-3 1.34-3 3s1.34 3 3 3 3-1.34 3-3-1.34-3-3-3z"/></svg>
+            </label>
+          
+        
+          
+          
+          <input class="md-option" data-md-color-media="" data-md-color-scheme="slate" data-md-color-primary="" data-md-color-accent=""  aria-label="Switch to light mode"  type="radio" name="__palette" id="__palette_2">
+          
+            <label class="md-header__button md-icon" title="Switch to light mode" for="__palette_1" hidden>
+              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M17 7H7a5 5 0 0 0-5 5 5 5 0 0 0 5 5h10a5 5 0 0 0 5-5 5 5 0 0 0-5-5m0 8a3 3 0 0 1-3-3 3 3 0 0 1 3-3 3 3 0 0 1 3 3 3 3 0 0 1-3 3z"/></svg>
+            </label>
+          
+        
+      </form>
+    
+    
+    
+      <label class="md-header__button md-icon" for="__search">
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.516 6.516 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5z"/></svg>
+      </label>
+      
+<div class="md-search" data-md-component="search" role="dialog">
+  <label class="md-search__overlay" for="__search"></label>
+  <div class="md-search__inner" role="search">
+    <form class="md-search__form" name="search">
+      <input type="text" class="md-search__input" name="query" aria-label="搜索" placeholder="搜索" autocapitalize="off" autocorrect="off" autocomplete="off" spellcheck="false" data-md-component="search-query" required>
+      <label class="md-search__icon md-icon" for="__search">
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.516 6.516 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5z"/></svg>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11h12z"/></svg>
+      </label>
+      <nav class="md-search__options" aria-label="Search">
+        
+        <button type="reset" class="md-search__icon md-icon" aria-label="Clear" tabindex="-1">
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M19 6.41 17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12 19 6.41z"/></svg>
+        </button>
+      </nav>
+      
+    </form>
+    <div class="md-search__output">
+      <div class="md-search__scrollwrap" data-md-scrollfix>
+        <div class="md-search-result" data-md-component="search-result">
+          <div class="md-search-result__meta">
+            正在初始化搜索引擎
+          </div>
+          <ol class="md-search-result__list"></ol>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+    
+    
+      <div class="md-header__source">
+        
+<a href="https://github.com/mapan1984/kafka-design/" title="前往仓库" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><path d="M439.55 236.05 244 40.45a28.87 28.87 0 0 0-40.81 0l-40.66 40.63 51.52 51.52c27.06-9.14 52.68 16.77 43.39 43.68l49.66 49.66c34.23-11.8 61.18 31 35.47 56.69-26.49 26.49-70.21-2.87-56-37.34L240.22 199v121.85c25.3 12.54 22.26 41.85 9.08 55a34.34 34.34 0 0 1-48.55 0c-17.57-17.6-11.07-46.91 11.25-56v-123c-20.8-8.51-24.6-30.74-18.64-45L142.57 101 8.45 235.14a28.86 28.86 0 0 0 0 40.81l195.61 195.6a28.86 28.86 0 0 0 40.8 0l194.69-194.69a28.86 28.86 0 0 0 0-40.81z"/></svg>
+  </div>
+  <div class="md-source__repository">
+    GitHub
+  </div>
+</a>
+      </div>
+    
+  </nav>
+  
+</header>
+    
+    <div class="md-container" data-md-component="container">
+      
+      
+        
+          
+        
+      
+      <main class="md-main" data-md-component="main">
+        <div class="md-main__inner md-grid">
+          
+            
+              
+              <div class="md-sidebar md-sidebar--primary" data-md-component="sidebar" data-md-type="navigation" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+
+<nav class="md-nav md-nav--primary" aria-label="Navigation" data-md-level="0">
+  <label class="md-nav__title" for="__drawer">
+    <a href="../.." title="kafka 设计实现解析" class="md-nav__button md-logo" aria-label="kafka 设计实现解析" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54z"/></svg>
+
+    </a>
+    kafka 设计实现解析
+  </label>
+  
+    <div class="md-nav__source">
+      
+<a href="https://github.com/mapan1984/kafka-design/" title="前往仓库" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><path d="M439.55 236.05 244 40.45a28.87 28.87 0 0 0-40.81 0l-40.66 40.63 51.52 51.52c27.06-9.14 52.68 16.77 43.39 43.68l49.66 49.66c34.23-11.8 61.18 31 35.47 56.69-26.49 26.49-70.21-2.87-56-37.34L240.22 199v121.85c25.3 12.54 22.26 41.85 9.08 55a34.34 34.34 0 0 1-48.55 0c-17.57-17.6-11.07-46.91 11.25-56v-123c-20.8-8.51-24.6-30.74-18.64-45L142.57 101 8.45 235.14a28.86 28.86 0 0 0 0 40.81l195.61 195.6a28.86 28.86 0 0 0 40.8 0l194.69-194.69a28.86 28.86 0 0 0 0-40.81z"/></svg>
+  </div>
+  <div class="md-source__repository">
+    GitHub
+  </div>
+</a>
+    </div>
+  
+  <ul class="md-nav__list" data-md-scrollfix>
+    
+      
+      
+      
+
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../.." class="md-nav__link">
+        0. kafka 设计实现解析
+      </a>
+    </li>
+  
+
+    
+      
+      
+      
+
+  
+  
+    
+  
+  
+    
+    <li class="md-nav__item md-nav__item--active md-nav__item--nested">
+      
+      
+        <input class="md-nav__toggle md-toggle" data-md-toggle="__nav_2" type="checkbox" id="__nav_2" checked>
+      
+      
+      
+      
+        <label class="md-nav__link" for="__nav_2">
+          <span class="md-nav__icon md-icon"></span>
+          
+            <a href="../" class="md-nav__link"
+              style="margin: initial; padding: initial; pointer-events: initial">
+          
+            1. server 解析
+          </a>
+        </label>
+      
+      <nav class="md-nav" aria-label="1. server 解析" data-md-level="1">
+        <label class="md-nav__title" for="__nav_2">
+          <span class="md-nav__icon md-icon"></span>
+          
+            <a href="../" class="md-nav__link"
+              style="margin: initial; padding: initial; pointer-events: initial">
+          
+            1. server 解析
+          </a>
+        </label>
+        <ul class="md-nav__list" data-md-scrollfix>
+          
+            
+              
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../1-server%20%E5%90%AF%E5%8A%A8%E8%BF%87%E7%A8%8B/" class="md-nav__link">
+        1.1 server 启动过程
+      </a>
+    </li>
+  
+
+            
+          
+            
+              
+  
+  
+    
+  
+  
+    <li class="md-nav__item md-nav__item--active">
+      
+      <input class="md-nav__toggle md-toggle" data-md-toggle="toc" type="checkbox" id="__toc">
+      
+      
+        
+      
+      
+        <label class="md-nav__link md-nav__link--active" for="__toc">
+          <span class="md-nav__icon md-icon"></span>
+          
+            <a href="./" class="md-nav__link md-nav__link--active"
+              style="margin: initial; padding: initial; pointer-events: initial">
+          
+            1.2 server 网络模型
+          </a>
+        </label>
+      
+      <a href="./" class="md-nav__link md-nav__link--active">
+        1.2 server 网络模型
+      </a>
+      
+        
+<nav class="md-nav md-nav--secondary" aria-label="目录">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      目录
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#socketserver" class="md-nav__link">
+    SocketServer
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#acceptor" class="md-nav__link">
+    Acceptor
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#processor" class="md-nav__link">
+    Processor
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#requestchannel" class="md-nav__link">
+    RequestChannel
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#kafkarequesthandler" class="md-nav__link">
+    KafkaRequestHandler
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#_1" class="md-nav__link">
+    监控
+  </a>
+  
+    <nav class="md-nav" aria-label="监控">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#requesthandleravgidlepercent" class="md-nav__link">
+    requestHandlerAvgIdlePercent
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#networkprocessoravgidlepercent" class="md-nav__link">
+    NetworkProcessorAvgIdlePercent
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+      
+    </li>
+  
+
+            
+          
+            
+              
+  
+  
+  
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+      
+        <input class="md-nav__toggle md-toggle" data-md-toggle="__nav_2_3" type="checkbox" id="__nav_2_3" >
+      
+      
+      
+      
+        <label class="md-nav__link" for="__nav_2_3">
+          <span class="md-nav__icon md-icon"></span>
+          
+            <a href="../3-KafkaController/" class="md-nav__link"
+              style="margin: initial; padding: initial; pointer-events: initial">
+          
+            1.3 KafkaController
+          </a>
+        </label>
+      
+      <nav class="md-nav" aria-label="1.3 KafkaController" data-md-level="2">
+        <label class="md-nav__title" for="__nav_2_3">
+          <span class="md-nav__icon md-icon"></span>
+          
+            <a href="../3-KafkaController/" class="md-nav__link"
+              style="margin: initial; padding: initial; pointer-events: initial">
+          
+            1.3 KafkaController
+          </a>
+        </label>
+        <ul class="md-nav__list" data-md-scrollfix>
+          
+            
+              
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../3-KafkaController/1-controller%E5%90%AF%E5%8A%A8/" class="md-nav__link">
+        1.3.1 KafkaController 启动
+      </a>
+    </li>
+  
+
+            
+          
+            
+              
+  
+  
+  
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+      
+        <input class="md-nav__toggle md-toggle" data-md-toggle="__nav_2_3_2" type="checkbox" id="__nav_2_3_2" >
+      
+      
+      
+      
+        <label class="md-nav__link" for="__nav_2_3_2">
+          <span class="md-nav__icon md-icon"></span>
+          
+            <a href="../3-KafkaController/2-controller%E7%BB%84%E4%BB%B6/" class="md-nav__link"
+              style="margin: initial; padding: initial; pointer-events: initial">
+          
+            1.3.2 KafkaController 组件
+          </a>
+        </label>
+      
+      <nav class="md-nav" aria-label="1.3.2 KafkaController 组件" data-md-level="3">
+        <label class="md-nav__title" for="__nav_2_3_2">
+          <span class="md-nav__icon md-icon"></span>
+          
+            <a href="../3-KafkaController/2-controller%E7%BB%84%E4%BB%B6/" class="md-nav__link"
+              style="margin: initial; padding: initial; pointer-events: initial">
+          
+            1.3.2 KafkaController 组件
+          </a>
+        </label>
+        <ul class="md-nav__list" data-md-scrollfix>
+          
+            
+              
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../3-KafkaController/2-controller%E7%BB%84%E4%BB%B6/1-ControllerContext/" class="md-nav__link">
+        1.3.2.1 ControllerContext
+      </a>
+    </li>
+  
+
+            
+          
+            
+              
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../3-KafkaController/2-controller%E7%BB%84%E4%BB%B6/2-ReplicaStateMachine/" class="md-nav__link">
+        1.3.2.2 ReplicaStateMachine
+      </a>
+    </li>
+  
+
+            
+          
+            
+              
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../3-KafkaController/2-controller%E7%BB%84%E4%BB%B6/3-PartitionStateMachine/" class="md-nav__link">
+        1.3.2.3 PartitionStateMachine
+      </a>
+    </li>
+  
+
+            
+          
+            
+              
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../3-KafkaController/2-controller%E7%BB%84%E4%BB%B6/4-ControllerChannelManager/" class="md-nav__link">
+        1.3.2.4 ControllerChannelManager
+      </a>
+    </li>
+  
+
+            
+          
+        </ul>
+      </nav>
+    </li>
+  
+
+            
+          
+            
+              
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../3-KafkaController/3-reassign-partitions/" class="md-nav__link">
+        1.3.3 reassign partitions
+      </a>
+    </li>
+  
+
+            
+          
+            
+              
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../3-KafkaController/4-delete-topic/" class="md-nav__link">
+        1.3.4 delete topic
+      </a>
+    </li>
+  
+
+            
+          
+        </ul>
+      </nav>
+    </li>
+  
+
+            
+          
+            
+              
+  
+  
+  
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+      
+        <input class="md-nav__toggle md-toggle" data-md-toggle="__nav_2_4" type="checkbox" id="__nav_2_4" >
+      
+      
+      
+      
+        <label class="md-nav__link" for="__nav_2_4">
+          <span class="md-nav__icon md-icon"></span>
+          
+            <a href="../4-ReplicaManager/" class="md-nav__link"
+              style="margin: initial; padding: initial; pointer-events: initial">
+          
+            1.4 ReplicaManager
+          </a>
+        </label>
+      
+      <nav class="md-nav" aria-label="1.4 ReplicaManager" data-md-level="2">
+        <label class="md-nav__title" for="__nav_2_4">
+          <span class="md-nav__icon md-icon"></span>
+          
+            <a href="../4-ReplicaManager/" class="md-nav__link"
+              style="margin: initial; padding: initial; pointer-events: initial">
+          
+            1.4 ReplicaManager
+          </a>
+        </label>
+        <ul class="md-nav__list" data-md-scrollfix>
+          
+            
+              
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../4-ReplicaManager/1-replica%20manager%20%E5%90%AF%E5%8A%A8/" class="md-nav__link">
+        1.4.1 ReplicaManager 启动
+      </a>
+    </li>
+  
+
+            
+          
+        </ul>
+      </nav>
+    </li>
+  
+
+            
+          
+            
+              
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../5-GroupCoordinator/" class="md-nav__link">
+        1.5 GroupCoordinator
+      </a>
+    </li>
+  
+
+            
+          
+            
+              
+  
+  
+  
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+      
+        <input class="md-nav__toggle md-toggle" data-md-toggle="__nav_2_6" type="checkbox" id="__nav_2_6" >
+      
+      
+      
+      
+        <label class="md-nav__link" for="__nav_2_6">
+          <span class="md-nav__icon md-icon"></span>
+          
+            <a href="../6-LogManager/" class="md-nav__link"
+              style="margin: initial; padding: initial; pointer-events: initial">
+          
+            1.6 LogManager
+          </a>
+        </label>
+      
+      <nav class="md-nav" aria-label="1.6 LogManager" data-md-level="2">
+        <label class="md-nav__title" for="__nav_2_6">
+          <span class="md-nav__icon md-icon"></span>
+          
+            <a href="../6-LogManager/" class="md-nav__link"
+              style="margin: initial; padding: initial; pointer-events: initial">
+          
+            1.6 LogManager
+          </a>
+        </label>
+        <ul class="md-nav__list" data-md-scrollfix>
+          
+            
+              
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../6-LogManager/1-LogManager%20%E5%90%AF%E5%8A%A8/" class="md-nav__link">
+        1.6.1 LogManager 启动
+      </a>
+    </li>
+  
+
+            
+          
+            
+              
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../6-LogManager/2-%E6%97%A5%E5%BF%97%E6%B8%85%E7%90%86/" class="md-nav__link">
+        1.6.2 日志清理
+      </a>
+    </li>
+  
+
+            
+          
+            
+              
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../6-LogManager/3-flush%20log/" class="md-nav__link">
+        1.6.3 flush log
+      </a>
+    </li>
+  
+
+            
+          
+        </ul>
+      </nav>
+    </li>
+  
+
+            
+          
+        </ul>
+      </nav>
+    </li>
+  
+
+    
+      
+      
+      
+
+  
+  
+  
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+      
+        <input class="md-nav__toggle md-toggle" data-md-toggle="__nav_3" type="checkbox" id="__nav_3" >
+      
+      
+      
+      
+        <label class="md-nav__link" for="__nav_3">
+          <span class="md-nav__icon md-icon"></span>
+          
+            <a href="../../2-producer%20%E8%A7%A3%E6%9E%90/" class="md-nav__link"
+              style="margin: initial; padding: initial; pointer-events: initial">
+          
+            2. producer 解析
+          </a>
+        </label>
+      
+      <nav class="md-nav" aria-label="2. producer 解析" data-md-level="1">
+        <label class="md-nav__title" for="__nav_3">
+          <span class="md-nav__icon md-icon"></span>
+          
+            <a href="../../2-producer%20%E8%A7%A3%E6%9E%90/" class="md-nav__link"
+              style="margin: initial; padding: initial; pointer-events: initial">
+          
+            2. producer 解析
+          </a>
+        </label>
+        <ul class="md-nav__list" data-md-scrollfix>
+          
+            
+              
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../2-producer%20%E8%A7%A3%E6%9E%90/1-producer%20%E5%8F%91%E9%80%81%E6%B6%88%E6%81%AF/" class="md-nav__link">
+        2.1 producer 发送消息
+      </a>
+    </li>
+  
+
+            
+          
+            
+              
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../2-producer%20%E8%A7%A3%E6%9E%90/2-producer%20%E5%B9%82%E7%AD%89%E6%80%A7/" class="md-nav__link">
+        2.2 producer 幂等性
+      </a>
+    </li>
+  
+
+            
+          
+            
+              
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../2-producer%20%E8%A7%A3%E6%9E%90/3-producer%20%E5%8A%A0%E5%AF%86%20%E8%AE%A4%E8%AF%81/" class="md-nav__link">
+        2.3 producer 加密/认证
+      </a>
+    </li>
+  
+
+            
+          
+        </ul>
+      </nav>
+    </li>
+  
+
+    
+      
+      
+      
+
+  
+  
+  
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+      
+        <input class="md-nav__toggle md-toggle" data-md-toggle="__nav_4" type="checkbox" id="__nav_4" >
+      
+      
+      
+      
+        <label class="md-nav__link" for="__nav_4">
+          <span class="md-nav__icon md-icon"></span>
+          
+            <a href="../../3-consumer%20%E8%A7%A3%E6%9E%90/" class="md-nav__link"
+              style="margin: initial; padding: initial; pointer-events: initial">
+          
+            3. consumer 解析
+          </a>
+        </label>
+      
+      <nav class="md-nav" aria-label="3. consumer 解析" data-md-level="1">
+        <label class="md-nav__title" for="__nav_4">
+          <span class="md-nav__icon md-icon"></span>
+          
+            <a href="../../3-consumer%20%E8%A7%A3%E6%9E%90/" class="md-nav__link"
+              style="margin: initial; padding: initial; pointer-events: initial">
+          
+            3. consumer 解析
+          </a>
+        </label>
+        <ul class="md-nav__list" data-md-scrollfix>
+          
+            
+              
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../3-consumer%20%E8%A7%A3%E6%9E%90/1-%E6%B6%88%E8%B4%B9%E7%BB%84%E7%AE%A1%E7%90%86/" class="md-nav__link">
+        3.1-消费组管理
+      </a>
+    </li>
+  
+
+            
+          
+        </ul>
+      </nav>
+    </li>
+  
+
+    
+      
+      
+      
+
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../4-kafka-network-io/" class="md-nav__link">
+        4. kafka network io
+      </a>
+    </li>
+  
+
+    
+      
+      
+      
+
+  
+  
+  
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+      
+        <input class="md-nav__toggle md-toggle" data-md-toggle="__nav_6" type="checkbox" id="__nav_6" >
+      
+      
+      
+      
+        <label class="md-nav__link" for="__nav_6">
+          <span class="md-nav__icon md-icon"></span>
+          
+            <a href="../../5-release%20note/" class="md-nav__link"
+              style="margin: initial; padding: initial; pointer-events: initial">
+          
+            5. Release Note
+          </a>
+        </label>
+      
+      <nav class="md-nav" aria-label="5. Release Note" data-md-level="1">
+        <label class="md-nav__title" for="__nav_6">
+          <span class="md-nav__icon md-icon"></span>
+          
+            <a href="../../5-release%20note/" class="md-nav__link"
+              style="margin: initial; padding: initial; pointer-events: initial">
+          
+            5. Release Note
+          </a>
+        </label>
+        <ul class="md-nav__list" data-md-scrollfix>
+          
+            
+              
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../5-release%20note/2.7/" class="md-nav__link">
+        2.7
+      </a>
+    </li>
+  
+
+            
+          
+            
+              
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../5-release%20note/2.8.0/" class="md-nav__link">
+        2.8.0
+      </a>
+    </li>
+  
+
+            
+          
+        </ul>
+      </nav>
+    </li>
+  
+
+    
+      
+      
+      
+
+  
+  
+  
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+      
+        <input class="md-nav__toggle md-toggle" data-md-toggle="__nav_7" type="checkbox" id="__nav_7" >
+      
+      
+      
+      
+        <label class="md-nav__link" for="__nav_7">
+          <span class="md-nav__icon md-icon"></span>
+          
+            <a href="../../6-src/" class="md-nav__link"
+              style="margin: initial; padding: initial; pointer-events: initial">
+          
+            6. Src
+          </a>
+        </label>
+      
+      <nav class="md-nav" aria-label="6. Src" data-md-level="1">
+        <label class="md-nav__title" for="__nav_7">
+          <span class="md-nav__icon md-icon"></span>
+          
+            <a href="../../6-src/" class="md-nav__link"
+              style="margin: initial; padding: initial; pointer-events: initial">
+          
+            6. Src
+          </a>
+        </label>
+        <ul class="md-nav__list" data-md-scrollfix>
+          
+            
+              
+  
+  
+  
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+      
+        <input class="md-nav__toggle md-toggle" data-md-toggle="__nav_7_1" type="checkbox" id="__nav_7_1" >
+      
+      
+      
+      
+        <label class="md-nav__link" for="__nav_7_1">
+          <span class="md-nav__icon md-icon"></span>
+          
+            Clients
+          
+        </label>
+      
+      <nav class="md-nav" aria-label="Clients" data-md-level="2">
+        <label class="md-nav__title" for="__nav_7_1">
+          <span class="md-nav__icon md-icon"></span>
+          
+            Clients
+          
+        </label>
+        <ul class="md-nav__list" data-md-scrollfix>
+          
+            
+              
+  
+  
+  
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+      
+        <input class="md-nav__toggle md-toggle" data-md-toggle="__nav_7_1_1" type="checkbox" id="__nav_7_1_1" >
+      
+      
+      
+      
+        <label class="md-nav__link" for="__nav_7_1_1">
+          <span class="md-nav__icon md-icon"></span>
+          
+            Clients
+          
+        </label>
+      
+      <nav class="md-nav" aria-label="Clients" data-md-level="3">
+        <label class="md-nav__title" for="__nav_7_1_1">
+          <span class="md-nav__icon md-icon"></span>
+          
+            Clients
+          
+        </label>
+        <ul class="md-nav__list" data-md-scrollfix>
+          
+            
+              
+  
+  
+  
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+      
+        <input class="md-nav__toggle md-toggle" data-md-toggle="__nav_7_1_1_1" type="checkbox" id="__nav_7_1_1_1" >
+      
+      
+      
+      
+        <label class="md-nav__link" for="__nav_7_1_1_1">
+          <span class="md-nav__icon md-icon"></span>
+          
+            Producer
+          
+        </label>
+      
+      <nav class="md-nav" aria-label="Producer" data-md-level="4">
+        <label class="md-nav__title" for="__nav_7_1_1_1">
+          <span class="md-nav__icon md-icon"></span>
+          
+            Producer
+          
+        </label>
+        <ul class="md-nav__list" data-md-scrollfix>
+          
+            
+              
+  
+  
+  
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+      
+        <input class="md-nav__toggle md-toggle" data-md-toggle="__nav_7_1_1_1_1" type="checkbox" id="__nav_7_1_1_1_1" >
+      
+      
+      
+      
+        <label class="md-nav__link" for="__nav_7_1_1_1_1">
+          <span class="md-nav__icon md-icon"></span>
+          
+            Internals
+          
+        </label>
+      
+      <nav class="md-nav" aria-label="Internals" data-md-level="5">
+        <label class="md-nav__title" for="__nav_7_1_1_1_1">
+          <span class="md-nav__icon md-icon"></span>
+          
+            Internals
+          
+        </label>
+        <ul class="md-nav__list" data-md-scrollfix>
+          
+            
+              
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../6-src/clients/clients/producer/internals/ProducerBatch/" class="md-nav__link">
+        Producer Batch
+      </a>
+    </li>
+  
+
+            
+          
+            
+              
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../6-src/clients/clients/producer/internals/ProducerMetadata/" class="md-nav__link">
+        Producer Metadata
+      </a>
+    </li>
+  
+
+            
+          
+            
+              
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../6-src/clients/clients/producer/internals/RecordAccumulator/" class="md-nav__link">
+        Record Accumulator
+      </a>
+    </li>
+  
+
+            
+          
+            
+              
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../6-src/clients/clients/producer/internals/Sender/" class="md-nav__link">
+        Sender
+      </a>
+    </li>
+  
+
+            
+          
+        </ul>
+      </nav>
+    </li>
+  
+
+            
+          
+            
+              
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../6-src/clients/clients/producer/KafkaProducer/" class="md-nav__link">
+        Kafka Producer
+      </a>
+    </li>
+  
+
+            
+          
+        </ul>
+      </nav>
+    </li>
+  
+
+            
+          
+            
+              
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../6-src/clients/clients/Metadata/" class="md-nav__link">
+        Metadata
+      </a>
+    </li>
+  
+
+            
+          
+            
+              
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../6-src/clients/clients/NetworkClient/" class="md-nav__link">
+        Network Client
+      </a>
+    </li>
+  
+
+            
+          
+        </ul>
+      </nav>
+    </li>
+  
+
+            
+          
+            
+              
+  
+  
+  
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+      
+        <input class="md-nav__toggle md-toggle" data-md-toggle="__nav_7_1_2" type="checkbox" id="__nav_7_1_2" >
+      
+      
+      
+      
+        <label class="md-nav__link" for="__nav_7_1_2">
+          <span class="md-nav__icon md-icon"></span>
+          
+            Common
+          
+        </label>
+      
+      <nav class="md-nav" aria-label="Common" data-md-level="3">
+        <label class="md-nav__title" for="__nav_7_1_2">
+          <span class="md-nav__icon md-icon"></span>
+          
+            Common
+          
+        </label>
+        <ul class="md-nav__list" data-md-scrollfix>
+          
+            
+              
+  
+  
+  
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+      
+        <input class="md-nav__toggle md-toggle" data-md-toggle="__nav_7_1_2_1" type="checkbox" id="__nav_7_1_2_1" >
+      
+      
+      
+      
+        <label class="md-nav__link" for="__nav_7_1_2_1">
+          <span class="md-nav__icon md-icon"></span>
+          
+            Network
+          
+        </label>
+      
+      <nav class="md-nav" aria-label="Network" data-md-level="4">
+        <label class="md-nav__title" for="__nav_7_1_2_1">
+          <span class="md-nav__icon md-icon"></span>
+          
+            Network
+          
+        </label>
+        <ul class="md-nav__list" data-md-scrollfix>
+          
+            
+              
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../6-src/clients/common/network/KafkaChannel/" class="md-nav__link">
+        Kafka Channel
+      </a>
+    </li>
+  
+
+            
+          
+            
+              
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../6-src/clients/common/network/NetworkReceive/" class="md-nav__link">
+        Network Receive
+      </a>
+    </li>
+  
+
+            
+          
+            
+              
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../6-src/clients/common/network/NetworkSend/" class="md-nav__link">
+        Network Send
+      </a>
+    </li>
+  
+
+            
+          
+            
+              
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../6-src/clients/common/network/Receive/" class="md-nav__link">
+        Receive
+      </a>
+    </li>
+  
+
+            
+          
+            
+              
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../6-src/clients/common/network/Selector/" class="md-nav__link">
+        Selector
+      </a>
+    </li>
+  
+
+            
+          
+            
+              
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../6-src/clients/common/network/Send/" class="md-nav__link">
+        Send
+      </a>
+    </li>
+  
+
+            
+          
+            
+              
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../6-src/clients/common/network/TransportLayer/" class="md-nav__link">
+        Transport Layer
+      </a>
+    </li>
+  
+
+            
+          
+        </ul>
+      </nav>
+    </li>
+  
+
+            
+          
+            
+              
+  
+  
+  
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+      
+        <input class="md-nav__toggle md-toggle" data-md-toggle="__nav_7_1_2_2" type="checkbox" id="__nav_7_1_2_2" >
+      
+      
+      
+      
+        <label class="md-nav__link" for="__nav_7_1_2_2">
+          <span class="md-nav__icon md-icon"></span>
+          
+            Utils
+          
+        </label>
+      
+      <nav class="md-nav" aria-label="Utils" data-md-level="4">
+        <label class="md-nav__title" for="__nav_7_1_2_2">
+          <span class="md-nav__icon md-icon"></span>
+          
+            Utils
+          
+        </label>
+        <ul class="md-nav__list" data-md-scrollfix>
+          
+            
+              
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../6-src/clients/common/utils/KafkaThread/" class="md-nav__link">
+        Kafka Thread
+      </a>
+    </li>
+  
+
+            
+          
+        </ul>
+      </nav>
+    </li>
+  
+
+            
+          
+        </ul>
+      </nav>
+    </li>
+  
+
+            
+          
+        </ul>
+      </nav>
+    </li>
+  
+
+            
+          
+            
+              
+  
+  
+  
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+      
+        <input class="md-nav__toggle md-toggle" data-md-toggle="__nav_7_2" type="checkbox" id="__nav_7_2" >
+      
+      
+      
+      
+        <label class="md-nav__link" for="__nav_7_2">
+          <span class="md-nav__icon md-icon"></span>
+          
+            Core
+          
+        </label>
+      
+      <nav class="md-nav" aria-label="Core" data-md-level="2">
+        <label class="md-nav__title" for="__nav_7_2">
+          <span class="md-nav__icon md-icon"></span>
+          
+            Core
+          
+        </label>
+        <ul class="md-nav__list" data-md-scrollfix>
+          
+            
+              
+  
+  
+  
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+      
+        <input class="md-nav__toggle md-toggle" data-md-toggle="__nav_7_2_1" type="checkbox" id="__nav_7_2_1" >
+      
+      
+      
+      
+        <label class="md-nav__link" for="__nav_7_2_1">
+          <span class="md-nav__icon md-icon"></span>
+          
+            <a href="../../6-src/core/kafka/" class="md-nav__link"
+              style="margin: initial; padding: initial; pointer-events: initial">
+          
+            Kafka
+          </a>
+        </label>
+      
+      <nav class="md-nav" aria-label="Kafka" data-md-level="3">
+        <label class="md-nav__title" for="__nav_7_2_1">
+          <span class="md-nav__icon md-icon"></span>
+          
+            <a href="../../6-src/core/kafka/" class="md-nav__link"
+              style="margin: initial; padding: initial; pointer-events: initial">
+          
+            Kafka
+          </a>
+        </label>
+        <ul class="md-nav__list" data-md-scrollfix>
+          
+            
+              
+  
+  
+  
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+      
+        <input class="md-nav__toggle md-toggle" data-md-toggle="__nav_7_2_1_1" type="checkbox" id="__nav_7_2_1_1" >
+      
+      
+      
+      
+        <label class="md-nav__link" for="__nav_7_2_1_1">
+          <span class="md-nav__icon md-icon"></span>
+          
+            Controller
+          
+        </label>
+      
+      <nav class="md-nav" aria-label="Controller" data-md-level="4">
+        <label class="md-nav__title" for="__nav_7_2_1_1">
+          <span class="md-nav__icon md-icon"></span>
+          
+            Controller
+          
+        </label>
+        <ul class="md-nav__list" data-md-scrollfix>
+          
+            
+              
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../6-src/core/kafka/controller/ControllerState/" class="md-nav__link">
+        ControllerState
+      </a>
+    </li>
+  
+
+            
+          
+            
+              
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../6-src/core/kafka/controller/ReplicaStateMachine/" class="md-nav__link">
+        ReplicaStateMachine
+      </a>
+    </li>
+  
+
+            
+          
+            
+              
+  
+  
+  
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+      
+        <input class="md-nav__toggle md-toggle" data-md-toggle="__nav_7_2_1_1_3" type="checkbox" id="__nav_7_2_1_1_3" >
+      
+      
+      
+      
+        <label class="md-nav__link" for="__nav_7_2_1_1_3">
+          <span class="md-nav__icon md-icon"></span>
+          
+            <a href="../../6-src/core/kafka/controller/ControllerContext/" class="md-nav__link"
+              style="margin: initial; padding: initial; pointer-events: initial">
+          
+            ControllerContext
+          </a>
+        </label>
+      
+      <nav class="md-nav" aria-label="ControllerContext" data-md-level="5">
+        <label class="md-nav__title" for="__nav_7_2_1_1_3">
+          <span class="md-nav__icon md-icon"></span>
+          
+            <a href="../../6-src/core/kafka/controller/ControllerContext/" class="md-nav__link"
+              style="margin: initial; padding: initial; pointer-events: initial">
+          
+            ControllerContext
+          </a>
+        </label>
+        <ul class="md-nav__list" data-md-scrollfix>
+          
+            
+              
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../6-src/core/kafka/controller/ControllerContext/ReplicaAssignment/" class="md-nav__link">
+        ReplicaAssignment
+      </a>
+    </li>
+  
+
+            
+          
+        </ul>
+      </nav>
+    </li>
+  
+
+            
+          
+            
+              
+  
+  
+  
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+      
+        <input class="md-nav__toggle md-toggle" data-md-toggle="__nav_7_2_1_1_4" type="checkbox" id="__nav_7_2_1_1_4" >
+      
+      
+      
+      
+        <label class="md-nav__link" for="__nav_7_2_1_1_4">
+          <span class="md-nav__icon md-icon"></span>
+          
+            <a href="../../6-src/core/kafka/controller/ControllerEventManager/" class="md-nav__link"
+              style="margin: initial; padding: initial; pointer-events: initial">
+          
+            ControllerEventManager
+          </a>
+        </label>
+      
+      <nav class="md-nav" aria-label="ControllerEventManager" data-md-level="5">
+        <label class="md-nav__title" for="__nav_7_2_1_1_4">
+          <span class="md-nav__icon md-icon"></span>
+          
+            <a href="../../6-src/core/kafka/controller/ControllerEventManager/" class="md-nav__link"
+              style="margin: initial; padding: initial; pointer-events: initial">
+          
+            ControllerEventManager
+          </a>
+        </label>
+        <ul class="md-nav__list" data-md-scrollfix>
+          
+            
+              
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../6-src/core/kafka/controller/ControllerEventManager/ControllerEventProcessor/" class="md-nav__link">
+        ControllerEventProcessor
+      </a>
+    </li>
+  
+
+            
+          
+            
+              
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../6-src/core/kafka/controller/ControllerEventManager/ControllerEventThread/" class="md-nav__link">
+        ControllerEventThread
+      </a>
+    </li>
+  
+
+            
+          
+            
+              
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../6-src/core/kafka/controller/ControllerEventManager/QueueEvent/" class="md-nav__link">
+        QueueEvent
+      </a>
+    </li>
+  
+
+            
+          
+        </ul>
+      </nav>
+    </li>
+  
+
+            
+          
+            
+              
+  
+  
+  
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+      
+        <input class="md-nav__toggle md-toggle" data-md-toggle="__nav_7_2_1_1_5" type="checkbox" id="__nav_7_2_1_1_5" >
+      
+      
+      
+      
+        <label class="md-nav__link" for="__nav_7_2_1_1_5">
+          <span class="md-nav__icon md-icon"></span>
+          
+            <a href="../../6-src/core/kafka/controller/KafkaController/" class="md-nav__link"
+              style="margin: initial; padding: initial; pointer-events: initial">
+          
+            KafkaController
+          </a>
+        </label>
+      
+      <nav class="md-nav" aria-label="KafkaController" data-md-level="5">
+        <label class="md-nav__title" for="__nav_7_2_1_1_5">
+          <span class="md-nav__icon md-icon"></span>
+          
+            <a href="../../6-src/core/kafka/controller/KafkaController/" class="md-nav__link"
+              style="margin: initial; padding: initial; pointer-events: initial">
+          
+            KafkaController
+          </a>
+        </label>
+        <ul class="md-nav__list" data-md-scrollfix>
+          
+            
+              
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../6-src/core/kafka/controller/KafkaController/ControllerEvent/" class="md-nav__link">
+        ControllerEvent
+      </a>
+    </li>
+  
+
+            
+          
+        </ul>
+      </nav>
+    </li>
+  
+
+            
+          
+        </ul>
+      </nav>
+    </li>
+  
+
+            
+          
+            
+              
+  
+  
+  
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+      
+        <input class="md-nav__toggle md-toggle" data-md-toggle="__nav_7_2_1_2" type="checkbox" id="__nav_7_2_1_2" >
+      
+      
+      
+      
+        <label class="md-nav__link" for="__nav_7_2_1_2">
+          <span class="md-nav__icon md-icon"></span>
+          
+            Network
+          
+        </label>
+      
+      <nav class="md-nav" aria-label="Network" data-md-level="4">
+        <label class="md-nav__title" for="__nav_7_2_1_2">
+          <span class="md-nav__icon md-icon"></span>
+          
+            Network
+          
+        </label>
+        <ul class="md-nav__list" data-md-scrollfix>
+          
+            
+              
+  
+  
+  
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+      
+        <input class="md-nav__toggle md-toggle" data-md-toggle="__nav_7_2_1_2_1" type="checkbox" id="__nav_7_2_1_2_1" >
+      
+      
+      
+      
+        <label class="md-nav__link" for="__nav_7_2_1_2_1">
+          <span class="md-nav__icon md-icon"></span>
+          
+            <a href="../../6-src/core/kafka/network/SocketServer/" class="md-nav__link"
+              style="margin: initial; padding: initial; pointer-events: initial">
+          
+            Socket Server
+          </a>
+        </label>
+      
+      <nav class="md-nav" aria-label="Socket Server" data-md-level="5">
+        <label class="md-nav__title" for="__nav_7_2_1_2_1">
+          <span class="md-nav__icon md-icon"></span>
+          
+            <a href="../../6-src/core/kafka/network/SocketServer/" class="md-nav__link"
+              style="margin: initial; padding: initial; pointer-events: initial">
+          
+            Socket Server
+          </a>
+        </label>
+        <ul class="md-nav__list" data-md-scrollfix>
+          
+            
+              
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../6-src/core/kafka/network/SocketServer/Acceptor/" class="md-nav__link">
+        Acceptor
+      </a>
+    </li>
+  
+
+            
+          
+            
+              
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../6-src/core/kafka/network/SocketServer/Processor/" class="md-nav__link">
+        Processor
+      </a>
+    </li>
+  
+
+            
+          
+        </ul>
+      </nav>
+    </li>
+  
+
+            
+          
+            
+              
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../6-src/core/kafka/network/RequestChannel/" class="md-nav__link">
+        Request Channel
+      </a>
+    </li>
+  
+
+            
+          
+        </ul>
+      </nav>
+    </li>
+  
+
+            
+          
+            
+              
+  
+  
+  
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+      
+        <input class="md-nav__toggle md-toggle" data-md-toggle="__nav_7_2_1_3" type="checkbox" id="__nav_7_2_1_3" >
+      
+      
+      
+      
+        <label class="md-nav__link" for="__nav_7_2_1_3">
+          <span class="md-nav__icon md-icon"></span>
+          
+            Server
+          
+        </label>
+      
+      <nav class="md-nav" aria-label="Server" data-md-level="4">
+        <label class="md-nav__title" for="__nav_7_2_1_3">
+          <span class="md-nav__icon md-icon"></span>
+          
+            Server
+          
+        </label>
+        <ul class="md-nav__list" data-md-scrollfix>
+          
+            
+              
+  
+  
+  
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+      
+        <input class="md-nav__toggle md-toggle" data-md-toggle="__nav_7_2_1_3_1" type="checkbox" id="__nav_7_2_1_3_1" >
+      
+      
+      
+      
+        <label class="md-nav__link" for="__nav_7_2_1_3_1">
+          <span class="md-nav__icon md-icon"></span>
+          
+            <a href="../../6-src/core/kafka/server/KafkaRequestHandler/" class="md-nav__link"
+              style="margin: initial; padding: initial; pointer-events: initial">
+          
+            Kafka Request Handler
+          </a>
+        </label>
+      
+      <nav class="md-nav" aria-label="Kafka Request Handler" data-md-level="5">
+        <label class="md-nav__title" for="__nav_7_2_1_3_1">
+          <span class="md-nav__icon md-icon"></span>
+          
+            <a href="../../6-src/core/kafka/server/KafkaRequestHandler/" class="md-nav__link"
+              style="margin: initial; padding: initial; pointer-events: initial">
+          
+            Kafka Request Handler
+          </a>
+        </label>
+        <ul class="md-nav__list" data-md-scrollfix>
+          
+            
+              
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../6-src/core/kafka/server/KafkaRequestHandler/KafkaRequestHandlerPool/" class="md-nav__link">
+        Kafka Request Handler Pool
+      </a>
+    </li>
+  
+
+            
+          
+        </ul>
+      </nav>
+    </li>
+  
+
+            
+          
+            
+              
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../6-src/core/kafka/server/KafkaApis/" class="md-nav__link">
+        Kafka Apis
+      </a>
+    </li>
+  
+
+            
+          
+            
+              
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../6-src/core/kafka/server/KafkaServer/" class="md-nav__link">
+        Kafka Server
+      </a>
+    </li>
+  
+
+            
+          
+        </ul>
+      </nav>
+    </li>
+  
+
+            
+          
+            
+              
+  
+  
+  
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+      
+        <input class="md-nav__toggle md-toggle" data-md-toggle="__nav_7_2_1_4" type="checkbox" id="__nav_7_2_1_4" >
+      
+      
+      
+      
+        <label class="md-nav__link" for="__nav_7_2_1_4">
+          <span class="md-nav__icon md-icon"></span>
+          
+            Utils
+          
+        </label>
+      
+      <nav class="md-nav" aria-label="Utils" data-md-level="4">
+        <label class="md-nav__title" for="__nav_7_2_1_4">
+          <span class="md-nav__icon md-icon"></span>
+          
+            Utils
+          
+        </label>
+        <ul class="md-nav__list" data-md-scrollfix>
+          
+            
+              
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../6-src/core/kafka/utils/KafkaScheduler/" class="md-nav__link">
+        Kafka Scheduler
+      </a>
+    </li>
+  
+
+            
+          
+        </ul>
+      </nav>
+    </li>
+  
+
+            
+          
+        </ul>
+      </nav>
+    </li>
+  
+
+            
+          
+        </ul>
+      </nav>
+    </li>
+  
+
+            
+          
+        </ul>
+      </nav>
+    </li>
+  
+
+    
+      
+      
+      
+
+  
+  
+  
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+      
+        <input class="md-nav__toggle md-toggle" data-md-toggle="__nav_8" type="checkbox" id="__nav_8" >
+      
+      
+      
+      
+        <label class="md-nav__link" for="__nav_8">
+          <span class="md-nav__icon md-icon"></span>
+          
+            7. 其他
+          
+        </label>
+      
+      <nav class="md-nav" aria-label="7. 其他" data-md-level="1">
+        <label class="md-nav__title" for="__nav_8">
+          <span class="md-nav__icon md-icon"></span>
+          
+            7. 其他
+          
+        </label>
+        <ul class="md-nav__list" data-md-scrollfix>
+          
+            
+              
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../7-other/1-topic-name-limit/" class="md-nav__link">
+        7.1 topic 名规则
+      </a>
+    </li>
+  
+
+            
+          
+        </ul>
+      </nav>
+    </li>
+  
+
+    
+  </ul>
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+            
+              
+              <div class="md-sidebar md-sidebar--secondary" data-md-component="sidebar" data-md-type="toc" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+<nav class="md-nav md-nav--secondary" aria-label="目录">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      目录
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#socketserver" class="md-nav__link">
+    SocketServer
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#acceptor" class="md-nav__link">
+    Acceptor
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#processor" class="md-nav__link">
+    Processor
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#requestchannel" class="md-nav__link">
+    RequestChannel
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#kafkarequesthandler" class="md-nav__link">
+    KafkaRequestHandler
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#_1" class="md-nav__link">
+    监控
+  </a>
+  
+    <nav class="md-nav" aria-label="监控">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#requesthandleravgidlepercent" class="md-nav__link">
+    requestHandlerAvgIdlePercent
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#networkprocessoravgidlepercent" class="md-nav__link">
+    NetworkProcessorAvgIdlePercent
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+          
+          <div class="md-content" data-md-component="content">
+            <article class="md-content__inner md-typeset">
+              
+                
+                  <a href="https://github.com/mapan1984/kafka-design/edit/master/docs/1-server 解析/2-server 网络模型.md" title="编辑此页" class="md-content__button md-icon">
+                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20.71 7.04c.39-.39.39-1.04 0-1.41l-2.34-2.34c-.37-.39-1.02-.39-1.41 0l-1.84 1.83 3.75 3.75M3 17.25V21h3.75L17.81 9.93l-3.75-3.75L3 17.25z"/></svg>
+                  </a>
+                
+                
+                <h1 id="12-server">1.2 server 网络模型</h1>
+<p>从上一节我们得知 kafka 服务启动的动作对应的代码是 <code>KafkaServer</code> 的 <code>startup()</code> 函数，在 <code>startup()</code> 函数中， 创建并启动了一系列组件，其中包括 <code>SocketServer</code>。</p>
+<div class="highlight"><pre><span></span><code><span class="c1">// Create and start the socket server acceptor threads so that the bound port is known.</span>
+<span class="c1">// Delay starting processors until the end of the initialization sequence to ensure</span>
+<span class="c1">// that credentials have been loaded before processing authentications.</span>
+<span class="c1">//</span>
+<span class="c1">// Note that we allow the use of KRaft mode controller APIs when forwarding is enabled</span>
+<span class="c1">// so that the Envelope request is exposed. This is only used in testing currently.</span>
+<span class="n">socketServer</span> <span class="o">=</span> <span class="k">new</span> <span class="nc">SocketServer</span><span class="p">(</span><span class="n">config</span><span class="p">,</span> <span class="n">metrics</span><span class="p">,</span> <span class="n">time</span><span class="p">,</span> <span class="n">credentialProvider</span><span class="p">,</span> <span class="n">apiVersionManager</span><span class="p">)</span>
+<span class="n">socketServer</span><span class="p">.</span><span class="n">startup</span><span class="p">(</span><span class="n">startProcessingRequests</span> <span class="o">=</span> <span class="kc">false</span><span class="p">)</span>
+</code></pre></div>
+<p>这一节解析 server 端的网络模型，即 server 端接收请求，处理并返回响应的过程。</p>
+<p>对请求的监听正是通过 <code>SocketServer</code> 组件完成。</p>
+<p><img alt="" src="/kafka-design/images/1-server/kafka server network.png" /></p>
+<h2 id="socketserver">SocketServer</h2>
+<p><code>SocketServer</code> 支持 2 种类型的请求：</p>
+<ol>
+<li>数据(data plane)：<ul>
+<li>处理来自 client 或者同集群其他 broker 的请求</li>
+<li>线程模型是：<ul>
+<li>可以配置多个 listener，每个 listener 对应 1 个 Acceptor 线程，处理新的连接请求</li>
+<li>Acceptor 有 N 个 Processor 线程，Processor 有自己的 selector 用来读来自 sockets 的请求(<code>num.network.threads</code>)</li>
+<li>M 个 Handler 线程处理请求并产生响应发回给 Processor 线程(<code>num.io.threads</code>)</li>
+</ul>
+</li>
+</ul>
+</li>
+<li>控制(control plane)：<ul>
+<li>处理来自 controller 的请求。这是可选的并且通过指定 <code>control.plane.listener.name</code> 进行配置。如果没有配置，controller 的请求也会像数据请求一样通过 listener 处理</li>
+<li>线程模型是：<ul>
+<li>1 个 Acceptor 线程处理新的连接请求</li>
+<li>Acceptor 有 1 个 Processor 线程，Processor 有自己的 selector 用来读来自 socket 的请求</li>
+<li>1 个 Handler 线程处理请求并产生响应发回给 Processor 线程</li>
+</ul>
+</li>
+</ul>
+</li>
+</ol>
+<p>查看 <a href="/kafka-design/6-src/core/kafka/network/SocketServer">SocketServer</a> 代码，</p>
+<p><code>SocketServer</code> 构造时会初始以下关键属性：</p>
+<div class="highlight"><pre><span></span><code><span class="c1">// data-plane</span>
+<span class="k">private</span> <span class="kd">val</span> <span class="n">dataPlaneProcessors</span> <span class="o">=</span> <span class="k">new</span> <span class="nc">ConcurrentHashMap</span><span class="p">[</span><span class="nc">Int</span><span class="p">,</span> <span class="nc">Processor</span><span class="p">]()</span>
+<span class="k">private</span><span class="p">[</span><span class="n">network</span><span class="p">]</span> <span class="kd">val</span> <span class="n">dataPlaneAcceptors</span> <span class="o">=</span> <span class="k">new</span> <span class="nc">ConcurrentHashMap</span><span class="p">[</span><span class="nc">EndPoint</span><span class="p">,</span> <span class="nc">Acceptor</span><span class="p">]()</span>
+<span class="kd">val</span> <span class="n">dataPlaneRequestChannel</span> <span class="o">=</span> <span class="k">new</span> <span class="nc">RequestChannel</span><span class="p">(</span><span class="n">maxQueuedRequests</span><span class="p">,</span> <span class="nc">DataPlaneMetricPrefix</span><span class="p">,</span> <span class="n">time</span><span class="p">)</span>
+<span class="c1">// control-plane</span>
+<span class="k">private</span> <span class="kd">var</span> <span class="n">controlPlaneProcessorOpt</span> <span class="p">:</span> <span class="nc">Option</span><span class="p">[</span><span class="nc">Processor</span><span class="p">]</span> <span class="o">=</span> <span class="nc">None</span>
+<span class="k">private</span><span class="p">[</span><span class="n">network</span><span class="p">]</span> <span class="kd">var</span> <span class="n">controlPlaneAcceptorOpt</span> <span class="p">:</span> <span class="nc">Option</span><span class="p">[</span><span class="nc">Acceptor</span><span class="p">]</span> <span class="o">=</span> <span class="nc">None</span>
+<span class="kd">val</span> <span class="n">controlPlaneRequestChannelOpt</span><span class="p">:</span> <span class="nc">Option</span><span class="p">[</span><span class="nc">RequestChannel</span><span class="p">]</span> <span class="o">=</span> <span class="n">config</span><span class="p">.</span><span class="n">controlPlaneListenerName</span><span class="p">.</span><span class="n">map</span><span class="p">(</span><span class="n">_</span> <span class="o">=&gt;</span>
+  <span class="k">new</span> <span class="nc">RequestChannel</span><span class="p">(</span><span class="mi">20</span><span class="p">,</span> <span class="nc">ControlPlaneMetricPrefix</span><span class="p">,</span> <span class="n">time</span><span class="p">))</span>
+</code></pre></div>
+<p><code>SocketServer</code> 的 <code>startup()</code> 函数中主要动作为：</p>
+<div class="highlight"><pre><span></span><code><span class="bp">this</span><span class="p">.</span><span class="k">synchronized</span> <span class="p">{</span>
+  <span class="n">connectionQuotas</span> <span class="o">=</span> <span class="k">new</span> <span class="nc">ConnectionQuotas</span><span class="p">(</span><span class="n">config</span><span class="p">,</span> <span class="n">time</span><span class="p">,</span> <span class="n">metrics</span><span class="p">)</span>
+  <span class="c1">// 1. 创建处理 controller 请求的 Acceptor, Processor</span>
+  <span class="n">createControlPlaneAcceptorAndProcessor</span><span class="p">(</span><span class="n">config</span><span class="p">.</span><span class="n">controlPlaneListener</span><span class="p">)</span>
+  <span class="c1">// 2. 创建处理数据请求的 Acceptor, Processor</span>
+  <span class="n">createDataPlaneAcceptorsAndProcessors</span><span class="p">(</span><span class="n">config</span><span class="p">.</span><span class="n">numNetworkThreads</span><span class="p">,</span> <span class="n">config</span><span class="p">.</span><span class="n">dataPlaneListeners</span><span class="p">)</span>
+  <span class="k">if</span> <span class="p">(</span><span class="n">startProcessingRequests</span><span class="p">)</span> <span class="p">{</span>
+    <span class="c1">// 3. 启动线程 kafkaThread，后台运行 Acceptor 与 Processor</span>
+    <span class="bp">this</span><span class="p">.</span><span class="n">startProcessingRequests</span><span class="p">()</span>
+  <span class="p">}</span>
+<span class="p">}</span>
+</code></pre></div>
+<p>主要有 3 步：</p>
+<ol>
+<li>创建处理 controller 请求的 Acceptor, Processor</li>
+<li>创建处理数据请求的 Acceptor, Processor</li>
+<li>启动线程 kafkaThread，后台运行 Acceptor 与 Processor</li>
+</ol>
+<div class="highlight"><pre><span></span><code><span class="k">private</span> <span class="k">def</span> <span class="nf">createDataPlaneAcceptorsAndProcessors</span><span class="p">(</span><span class="n">dataProcessorsPerListener</span><span class="p">:</span> <span class="nc">Int</span><span class="p">,</span>
+                                                  <span class="n">endpoints</span><span class="p">:</span> <span class="nc">Seq</span><span class="p">[</span><span class="nc">EndPoint</span><span class="p">]):</span> <span class="nc">Unit</span> <span class="o">=</span> <span class="p">{</span>
+  <span class="c1">// 对每个 endpoint</span>
+  <span class="n">endpoints</span><span class="p">.</span><span class="n">foreach</span> <span class="p">{</span> <span class="n">endpoint</span> <span class="o">=&gt;</span>
+    <span class="n">connectionQuotas</span><span class="p">.</span><span class="n">addListener</span><span class="p">(</span><span class="n">config</span><span class="p">,</span> <span class="n">endpoint</span><span class="p">.</span><span class="n">listenerName</span><span class="p">)</span>
+    <span class="c1">// 创建 Acceptor</span>
+    <span class="kd">val</span> <span class="n">dataPlaneAcceptor</span> <span class="o">=</span> <span class="n">createAcceptor</span><span class="p">(</span><span class="n">endpoint</span><span class="p">,</span> <span class="nc">DataPlaneMetricPrefix</span><span class="p">)</span>
+    <span class="c1">// 1. 创建 dataProcessorsPerListener 个 Processor</span>
+    <span class="c1">// 2. 将 Processor 加入到 dataPlaneRequestChannel 的 processors 中</span>
+    <span class="c1">// 3. 将 Processor 加入到 SocketServer 的 dataPlaneProcessors 中</span>
+    <span class="c1">// 4. 将 Processor 加入到 Acceptor 的 processors 中</span>
+    <span class="n">addDataPlaneProcessors</span><span class="p">(</span><span class="n">dataPlaneAcceptor</span><span class="p">,</span> <span class="n">endpoint</span><span class="p">,</span> <span class="n">dataProcessorsPerListener</span><span class="p">)</span>
+    <span class="c1">// 将 Acceptor 加入到 SocketServer 的 dataPlaneAcceptors 中</span>
+    <span class="n">dataPlaneAcceptors</span><span class="p">.</span><span class="n">put</span><span class="p">(</span><span class="n">endpoint</span><span class="p">,</span> <span class="n">dataPlaneAcceptor</span><span class="p">)</span>
+    <span class="n">info</span><span class="p">(</span><span class="s">s&quot;Created data-plane acceptor and processors for endpoint : </span><span class="si">${</span><span class="n">endpoint</span><span class="p">.</span><span class="n">listenerName</span><span class="si">}</span><span class="s">&quot;</span><span class="p">)</span>
+  <span class="p">}</span>
+<span class="p">}</span>
+</code></pre></div>
+<div class="highlight"><pre><span></span><code><span class="k">private</span> <span class="k">def</span> <span class="nf">createControlPlaneAcceptorAndProcessor</span><span class="p">(</span><span class="n">endpointOpt</span><span class="p">:</span> <span class="nc">Option</span><span class="p">[</span><span class="nc">EndPoint</span><span class="p">]):</span> <span class="nc">Unit</span> <span class="o">=</span> <span class="p">{</span>
+  <span class="n">endpointOpt</span><span class="p">.</span><span class="n">foreach</span> <span class="p">{</span> <span class="n">endpoint</span> <span class="o">=&gt;</span>
+    <span class="n">connectionQuotas</span><span class="p">.</span><span class="n">addListener</span><span class="p">(</span><span class="n">config</span><span class="p">,</span> <span class="n">endpoint</span><span class="p">.</span><span class="n">listenerName</span><span class="p">)</span>
+    <span class="kd">val</span> <span class="n">controlPlaneAcceptor</span> <span class="o">=</span> <span class="n">createAcceptor</span><span class="p">(</span><span class="n">endpoint</span><span class="p">,</span> <span class="nc">ControlPlaneMetricPrefix</span><span class="p">)</span>
+    <span class="kd">val</span> <span class="n">controlPlaneProcessor</span> <span class="o">=</span> <span class="n">newProcessor</span><span class="p">(</span><span class="n">nextProcessorId</span><span class="p">,</span> <span class="n">controlPlaneRequestChannelOpt</span><span class="p">.</span><span class="n">get</span><span class="p">,</span> <span class="n">connectionQuotas</span><span class="p">,</span> <span class="n">endpoint</span><span class="p">.</span><span class="n">listenerName</span><span class="p">,</span> <span class="n">endpoint</span><span class="p">.</span><span class="n">securityProtocol</span><span class="p">,</span> <span class="n">memoryPool</span><span class="p">)</span>
+    <span class="n">controlPlaneAcceptorOpt</span> <span class="o">=</span> <span class="nc">Some</span><span class="p">(</span><span class="n">controlPlaneAcceptor</span><span class="p">)</span>
+    <span class="n">controlPlaneProcessorOpt</span> <span class="o">=</span> <span class="nc">Some</span><span class="p">(</span><span class="n">controlPlaneProcessor</span><span class="p">)</span>
+    <span class="kd">val</span> <span class="n">listenerProcessors</span> <span class="o">=</span> <span class="k">new</span> <span class="nc">ArrayBuffer</span><span class="p">[</span><span class="nc">Processor</span><span class="p">]()</span>
+    <span class="n">listenerProcessors</span> <span class="o">+=</span> <span class="n">controlPlaneProcessor</span>
+    <span class="n">controlPlaneRequestChannelOpt</span><span class="p">.</span><span class="n">foreach</span><span class="p">(</span><span class="n">_</span><span class="p">.</span><span class="n">addProcessor</span><span class="p">(</span><span class="n">controlPlaneProcessor</span><span class="p">))</span>
+    <span class="n">nextProcessorId</span> <span class="o">+=</span> <span class="mi">1</span>
+    <span class="n">controlPlaneAcceptor</span><span class="p">.</span><span class="n">addProcessors</span><span class="p">(</span><span class="n">listenerProcessors</span><span class="p">,</span> <span class="nc">ControlPlaneThreadPrefix</span><span class="p">)</span>
+    <span class="n">info</span><span class="p">(</span><span class="s">s&quot;Created control-plane acceptor and processor for endpoint : </span><span class="si">${</span><span class="n">endpoint</span><span class="p">.</span><span class="n">listenerName</span><span class="si">}</span><span class="s">&quot;</span><span class="p">)</span>
+  <span class="p">}</span>
+<span class="p">}</span>
+</code></pre></div>
+<p>这里做的工作为：</p>
+<ol>
+<li>为每个 endpoint 创建 1 个 <code>Acceptor</code>，<code>Acceptor</code> 负责监听请求</li>
+<li>对每个 endpoint 创建 N (<code>num.network.threads</code>) 个 <code>Processor</code>，同时：<ol>
+<li>将 <code>Processor</code> 记录到 <code>RequestChannel</code> 的 <code>processors</code> hash map 中</li>
+<li>将 <code>Processor</code> 记录到 <code>SocketServer</code> 的 <code>dataPlaneProcessors</code> hash map 中</li>
+<li>将 <code>Processor</code> 加入到 <code>Acceptor</code> 的 <code>processors</code> 数组中</li>
+</ol>
+</li>
+<li>将 <code>Acceptor</code> 加入到 <code>SocketServer</code> 的 <code>dataPlaneAcceptors</code> hash map 中</li>
+</ol>
+<p>这里完成之后，处理请求所需的 <code>SocketServer</code>, <code>Acceptor</code>, <code>Processor</code>, <code>RequestChannel</code> 就都创建完成了，下面主要看一下 <code>Acceptor</code>, <code>Processor</code>, <code>RequestChannel</code> 各自的作用。</p>
+<h2 id="acceptor">Acceptor</h2>
+<p><a href="/kafka-design/6-src/core/kafka/network/SocketServer/Acceptor/">Acceptor</a></p>
+<h2 id="processor">Processor</h2>
+<p><a href="/kafka-design/6-src/core/kafka/network/SocketServer/Processor/">Processor</a></p>
+<h2 id="requestchannel">RequestChannel</h2>
+<p><a href="/kafka-design/6-src/core/kafka/network/RequestChannel/">RequestChannel</a></p>
+<h2 id="kafkarequesthandler">KafkaRequestHandler</h2>
+<p><a href="/kafka-design/6-src/core/kafka/server/KafkaRequestHandler/">KafkaRequestHandler</a></p>
+<h2 id="_1">监控</h2>
+<h3 id="requesthandleravgidlepercent">requestHandlerAvgIdlePercent</h3>
+<p><code>Meter</code> 类型，在 <code>KafkaRequestHandlerPool</code> 中创建，创建每个 <code>KafkaRequestHandler</code> 时传入</p>
+<div class="highlight"><pre><span></span><code><span class="cm">/* a meter to track the average free capacity of the request handlers */</span>
+<span class="k">private</span> <span class="kd">val</span> <span class="n">aggregateIdleMeter</span> <span class="o">=</span> <span class="n">newMeter</span><span class="p">(</span><span class="n">requestHandlerAvgIdleMetricName</span><span class="p">,</span> <span class="s">&quot;percent&quot;</span><span class="p">,</span> <span class="nc">TimeUnit</span><span class="p">.</span><span class="nc">NANOSECONDS</span><span class="p">)</span>
+
+
+<span class="kd">val</span> <span class="n">runnables</span> <span class="o">=</span> <span class="k">new</span> <span class="n">mutable</span><span class="p">.</span><span class="nc">ArrayBuffer</span><span class="p">[</span><span class="nc">KafkaRequestHandler</span><span class="p">](</span><span class="n">numThreads</span><span class="p">)</span>
+<span class="k">for</span> <span class="p">(</span><span class="n">i</span> <span class="o">&lt;-</span> <span class="mi">0</span> <span class="n">until</span> <span class="n">numThreads</span><span class="p">)</span> <span class="p">{</span>
+  <span class="n">createHandler</span><span class="p">(</span><span class="n">i</span><span class="p">)</span>
+<span class="p">}</span>
+
+<span class="k">def</span> <span class="nf">createHandler</span><span class="p">(</span><span class="n">id</span><span class="p">:</span> <span class="nc">Int</span><span class="p">):</span> <span class="nc">Unit</span> <span class="o">=</span> <span class="k">synchronized</span> <span class="p">{</span>
+  <span class="n">runnables</span> <span class="o">+=</span> <span class="k">new</span> <span class="nc">KafkaRequestHandler</span><span class="p">(</span><span class="n">id</span><span class="p">,</span> <span class="n">brokerId</span><span class="p">,</span> <span class="n">aggregateIdleMeter</span><span class="p">,</span> <span class="n">threadPoolSize</span><span class="p">,</span> <span class="n">requestChannel</span><span class="p">,</span> <span class="n">apis</span><span class="p">,</span> <span class="n">time</span><span class="p">)</span>
+  <span class="nc">KafkaThread</span><span class="p">.</span><span class="n">daemon</span><span class="p">(</span><span class="n">logAndThreadNamePrefix</span> <span class="o">+</span> <span class="s">&quot;-kafka-request-handler-&quot;</span> <span class="o">+</span> <span class="n">id</span><span class="p">,</span> <span class="n">runnables</span><span class="p">(</span><span class="n">id</span><span class="p">)).</span><span class="n">start</span><span class="p">()</span>
+<span class="p">}</span>
+</code></pre></div>
+<p><code>KafkaRequestHandler</code> 作为后台线程启动，启动后不同从 <code>RequestChannel</code> 中获取请求，<code>Meter.mark()</code> 时，以获取请求的耗时除以线程总数。</p>
+<div class="highlight"><pre><span></span><code>  <span class="k">def</span> <span class="nf">run</span><span class="p">():</span> <span class="nc">Unit</span> <span class="o">=</span> <span class="p">{</span>
+    <span class="k">while</span> <span class="p">(</span><span class="o">!</span><span class="n">stopped</span><span class="p">)</span> <span class="p">{</span>
+      <span class="c1">// We use a single meter for aggregate idle percentage for the thread pool.</span>
+      <span class="c1">// Since meter is calculated as total_recorded_value / time_window and</span>
+      <span class="c1">// time_window is independent of the number of threads, each recorded idle</span>
+      <span class="c1">// time should be discounted by # threads.</span>
+      <span class="kd">val</span> <span class="n">startSelectTime</span> <span class="o">=</span> <span class="n">time</span><span class="p">.</span><span class="n">nanoseconds</span>
+
+      <span class="kd">val</span> <span class="n">req</span> <span class="o">=</span> <span class="n">requestChannel</span><span class="p">.</span><span class="n">receiveRequest</span><span class="p">(</span><span class="mi">300</span><span class="p">)</span>
+      <span class="kd">val</span> <span class="n">endTime</span> <span class="o">=</span> <span class="n">time</span><span class="p">.</span><span class="n">nanoseconds</span>
+      <span class="kd">val</span> <span class="n">idleTime</span> <span class="o">=</span> <span class="n">endTime</span> <span class="o">-</span> <span class="n">startSelectTime</span>
+
+      <span class="c1">// NOTE: 从 RequestChannel 中获取请求的时间，是 KafkaRequestHandler 空闲的时间</span>
+      <span class="n">aggregateIdleMeter</span><span class="p">.</span><span class="n">mark</span><span class="p">(</span><span class="n">idleTime</span> <span class="o">/</span> <span class="n">totalHandlerThreads</span><span class="p">.</span><span class="n">get</span><span class="p">)</span>
+
+      <span class="c1">// NOTE: 处理请求的时间为 KafkaRequestHandler 非空闲的时间</span>
+      <span class="n">req</span> <span class="k">match</span> <span class="p">{</span>
+        <span class="k">case</span> <span class="nc">RequestChannel</span><span class="p">.</span><span class="nc">ShutdownRequest</span> <span class="o">=&gt;</span>
+          <span class="n">debug</span><span class="p">(</span><span class="s">s&quot;Kafka request handler </span><span class="si">$</span><span class="n">id</span><span class="s"> on broker </span><span class="si">$</span><span class="n">brokerId</span><span class="s"> received shut down command&quot;</span><span class="p">)</span>
+          <span class="n">shutdownComplete</span><span class="p">.</span><span class="n">countDown</span><span class="p">()</span>
+          <span class="k">return</span>
+
+        <span class="k">case</span> <span class="n">request</span><span class="p">:</span> <span class="nc">RequestChannel</span><span class="p">.</span><span class="nc">Request</span> <span class="o">=&gt;</span>
+          <span class="k">try</span> <span class="p">{</span>
+            <span class="n">request</span><span class="p">.</span><span class="n">requestDequeueTimeNanos</span> <span class="o">=</span> <span class="n">endTime</span>
+            <span class="n">trace</span><span class="p">(</span><span class="s">s&quot;Kafka request handler </span><span class="si">$</span><span class="n">id</span><span class="s"> on broker </span><span class="si">$</span><span class="n">brokerId</span><span class="s"> handling request </span><span class="si">$</span><span class="n">request</span><span class="s">&quot;</span><span class="p">)</span>
+            <span class="n">apis</span><span class="p">.</span><span class="n">handle</span><span class="p">(</span><span class="n">request</span><span class="p">)</span>
+          <span class="p">}</span> <span class="k">catch</span> <span class="p">{</span>
+            <span class="k">case</span> <span class="n">e</span><span class="p">:</span> <span class="nc">FatalExitError</span> <span class="o">=&gt;</span>
+              <span class="n">shutdownComplete</span><span class="p">.</span><span class="n">countDown</span><span class="p">()</span>
+              <span class="nc">Exit</span><span class="p">.</span><span class="n">exit</span><span class="p">(</span><span class="n">e</span><span class="p">.</span><span class="n">statusCode</span><span class="p">)</span>
+            <span class="k">case</span> <span class="n">e</span><span class="p">:</span> <span class="nc">Throwable</span> <span class="o">=&gt;</span> <span class="n">error</span><span class="p">(</span><span class="s">&quot;Exception when handling request&quot;</span><span class="p">,</span> <span class="n">e</span><span class="p">)</span>
+          <span class="p">}</span> <span class="k">finally</span> <span class="p">{</span>
+            <span class="n">request</span><span class="p">.</span><span class="n">releaseBuffer</span><span class="p">()</span>
+          <span class="p">}</span>
+
+        <span class="k">case</span> <span class="kc">null</span> <span class="o">=&gt;</span> <span class="c1">// continue</span>
+      <span class="p">}</span>
+    <span class="p">}</span>
+    <span class="n">shutdownComplete</span><span class="p">.</span><span class="n">countDown</span><span class="p">()</span>
+  <span class="p">}</span>
+</code></pre></div>
+<p>requestHandler 线程不断循环做 2 件事：</p>
+<ol>
+<li>从  channel 中获取待处理请求</li>
+<li>处理请求（读/写请求/其他）</li>
+</ol>
+<p>假设每次循环，第 1 件事耗时 A，第 2 件事耗时 B</p>
+<p>空闲率 = A / (A + B)</p>
+<p>所以空闲率增加，可能的原因是请求数减少，导致 A 增加；或者读/写磁盘更快，处理请求耗时减少</p>
+<h3 id="networkprocessoravgidlepercent">NetworkProcessorAvgIdlePercent</h3>
+<p><code>Gauge</code> 类型，在 <code>SocketServer.startup()</code> 时定义</p>
+<div class="highlight"><pre><span></span><code>    <span class="n">newGauge</span><span class="p">(</span><span class="s">s&quot;</span><span class="si">${</span><span class="nc">DataPlaneMetricPrefix</span><span class="si">}</span><span class="s">NetworkProcessorAvgIdlePercent&quot;</span><span class="p">,</span> <span class="p">()</span> <span class="o">=&gt;</span> <span class="nc">SocketServer</span><span class="p">.</span><span class="bp">this</span><span class="p">.</span><span class="k">synchronized</span> <span class="p">{</span>
+      <span class="kd">val</span> <span class="n">ioWaitRatioMetricNames</span> <span class="o">=</span> <span class="n">dataPlaneProcessors</span><span class="p">.</span><span class="n">values</span><span class="p">.</span><span class="n">asScala</span><span class="p">.</span><span class="n">iterator</span><span class="p">.</span><span class="n">map</span> <span class="p">{</span> <span class="n">p</span> <span class="o">=&gt;</span>
+        <span class="n">metrics</span><span class="p">.</span><span class="n">metricName</span><span class="p">(</span><span class="s">&quot;io-wait-ratio&quot;</span><span class="p">,</span> <span class="nc">MetricsGroup</span><span class="p">,</span> <span class="n">p</span><span class="p">.</span><span class="n">metricTags</span><span class="p">)</span>
+      <span class="p">}</span>
+      <span class="n">ioWaitRatioMetricNames</span><span class="p">.</span><span class="n">map</span> <span class="p">{</span> <span class="n">metricName</span> <span class="o">=&gt;</span>
+        <span class="nc">Option</span><span class="p">(</span><span class="n">metrics</span><span class="p">.</span><span class="n">metric</span><span class="p">(</span><span class="n">metricName</span><span class="p">)).</span><span class="n">fold</span><span class="p">(</span><span class="mf">0.0</span><span class="p">)(</span><span class="n">m</span> <span class="o">=&gt;</span> <span class="nc">Math</span><span class="p">.</span><span class="n">min</span><span class="p">(</span><span class="n">m</span><span class="p">.</span><span class="n">metricValue</span><span class="p">.</span><span class="k">asInstanceOf</span><span class="p">[</span><span class="nc">Double</span><span class="p">],</span> <span class="mf">1.0</span><span class="p">))</span>
+      <span class="p">}.</span><span class="n">sum</span> <span class="o">/</span> <span class="n">dataPlaneProcessors</span><span class="p">.</span><span class="n">size</span>
+    <span class="p">})</span>
+</code></pre></div>
+<p>计算方法是取得每个 networkProcessor 的 io-wait-ratio，除以 networkProcessor 总数。io-wait 的比例，即是 networkProcessor 空闲的占比。</p>
+<p>io-wait-ratio 指标在 <code>Selector</code> 中计算，<code>Meter</code> 类型</p>
+                
+              
+              
+                
+
+
+              
+            </article>
+          </div>
+        </div>
+        
+      </main>
+      
+        
+<footer class="md-footer">
+  
+    <nav class="md-footer__inner md-grid" aria-label="Footer">
+      
+        
+        <a href="../1-server%20%E5%90%AF%E5%8A%A8%E8%BF%87%E7%A8%8B/" class="md-footer__link md-footer__link--prev" aria-label="上一页: 1.1 server 启动过程" rel="prev">
+          <div class="md-footer__button md-icon">
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11h12z"/></svg>
+          </div>
+          <div class="md-footer__title">
+            <div class="md-ellipsis">
+              <span class="md-footer__direction">
+                上一页
+              </span>
+              1.1 server 启动过程
+            </div>
+          </div>
+        </a>
+      
+      
+        
+        <a href="../3-KafkaController/" class="md-footer__link md-footer__link--next" aria-label="下一页: 1.3 KafkaController" rel="next">
+          <div class="md-footer__title">
+            <div class="md-ellipsis">
+              <span class="md-footer__direction">
+                下一页
+              </span>
+              1.3 KafkaController
+            </div>
+          </div>
+          <div class="md-footer__button md-icon">
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M4 11v2h12l-5.5 5.5 1.42 1.42L19.84 12l-7.92-7.92L10.5 5.5 16 11H4z"/></svg>
+          </div>
+        </a>
+      
+    </nav>
+  
+  <div class="md-footer-meta md-typeset">
+    <div class="md-footer-meta__inner md-grid">
+      <div class="md-footer-copyright">
+        
+        
+          Made with
+          <a href="https://squidfunk.github.io/mkdocs-material/" target="_blank" rel="noopener">
+            Material for MkDocs
+          </a>
+        
+        
+      </div>
+      
+    </div>
+  </div>
+</footer>
+      
+    </div>
+    <div class="md-dialog" data-md-component="dialog">
+      <div class="md-dialog__inner md-typeset"></div>
+    </div>
+    <script id="__config" type="application/json">{"base": "../..", "features": [], "translations": {"clipboard.copy": "\u590d\u5236", "clipboard.copied": "\u5df2\u590d\u5236", "search.config.lang": "ja", "search.config.pipeline": "trimmer, stemmer", "search.config.separator": "[\\uff0c\\u3002]+", "search.placeholder": "\u641c\u7d22", "search.result.placeholder": "\u952e\u5165\u4ee5\u5f00\u59cb\u641c\u7d22", "search.result.none": "\u6ca1\u6709\u627e\u5230\u7b26\u5408\u6761\u4ef6\u7684\u7ed3\u679c", "search.result.one": "\u627e\u5230 1 \u4e2a\u7b26\u5408\u6761\u4ef6\u7684\u7ed3\u679c", "search.result.other": "# \u4e2a\u7b26\u5408\u6761\u4ef6\u7684\u7ed3\u679c", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.term.missing": "Missing", "select.version.title": "Select version"}, "search": "../../assets/javascripts/workers/search.f8263e09.min.js", "version": null}</script>
+    
+    
+      <script src="../../assets/javascripts/bundle.4fc53ad4.min.js"></script>
+      
+    
+  </body>
+</html>

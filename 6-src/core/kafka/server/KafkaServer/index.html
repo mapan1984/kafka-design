@@ -1,0 +1,2555 @@
+
+<!doctype html>
+<html lang="zh" class="no-js">
+  <head>
+    
+      <meta charset="utf-8">
+      <meta name="viewport" content="width=device-width,initial-scale=1">
+      
+        <meta name="description" content="kafka 设计实现解析">
+      
+      
+      
+        <meta name="author" content="mapan">
+      
+      
+        <link rel="canonical" href="https://mapan1984.github.io/kafka-design/6-src/core/kafka/server/KafkaServer/">
+      
+      <link rel="icon" href="../../../../../assets/images/favicon.png">
+      <meta name="generator" content="mkdocs-1.2.2, mkdocs-material-7.3.0">
+    
+    
+      
+        <title>Kafka Server - kafka 设计实现解析</title>
+      
+    
+    
+      <link rel="stylesheet" href="../../../../../assets/stylesheets/main.8b42a75e.min.css">
+      
+        
+        <link rel="stylesheet" href="../../../../../assets/stylesheets/palette.3f5d1f46.min.css">
+        
+      
+    
+    
+    
+      
+        
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+        <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Roboto:300,400,400i,700%7CRoboto+Mono&display=fallback">
+        <style>:root{--md-text-font-family:"Roboto";--md-code-font-family:"Roboto Mono"}</style>
+      
+    
+    
+    
+    
+      
+
+
+    
+    
+  </head>
+  
+  
+    
+    
+      
+    
+    
+    
+    
+    <body dir="ltr" data-md-color-scheme="default" data-md-color-primary="blue-grey" data-md-color-accent="deep-orange">
+  
+    
+    <script>function __prefix(e){return new URL("../../../../..",location).pathname+"."+e}function __get(e,t=localStorage){return JSON.parse(t.getItem(__prefix(e)))}</script>
+    
+      <script>var palette=__get("__palette");if(null!==palette&&"object"==typeof palette.color)for(var key in palette.color)document.body.setAttribute("data-md-color-"+key,palette.color[key])</script>
+    
+    <input class="md-toggle" data-md-toggle="drawer" type="checkbox" id="__drawer" autocomplete="off">
+    <input class="md-toggle" data-md-toggle="search" type="checkbox" id="__search" autocomplete="off">
+    <label class="md-overlay" for="__drawer"></label>
+    <div data-md-component="skip">
+      
+        
+        <a href="#kafkaserver" class="md-skip">
+          跳转至
+        </a>
+      
+    </div>
+    <div data-md-component="announce">
+      
+    </div>
+    
+      
+
+<header class="md-header" data-md-component="header">
+  <nav class="md-header__inner md-grid" aria-label="Header">
+    <a href="../../../../.." title="kafka 设计实现解析" class="md-header__button md-logo" aria-label="kafka 设计实现解析" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54z"/></svg>
+
+    </a>
+    <label class="md-header__button md-icon" for="__drawer">
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M3 6h18v2H3V6m0 5h18v2H3v-2m0 5h18v2H3v-2z"/></svg>
+    </label>
+    <div class="md-header__title" data-md-component="header-title">
+      <div class="md-header__ellipsis">
+        <div class="md-header__topic">
+          <span class="md-ellipsis">
+            kafka 设计实现解析
+          </span>
+        </div>
+        <div class="md-header__topic" data-md-component="header-topic">
+          <span class="md-ellipsis">
+            
+              Kafka Server
+            
+          </span>
+        </div>
+      </div>
+    </div>
+    
+      <form class="md-header__option" data-md-component="palette">
+        
+          
+          
+          <input class="md-option" data-md-color-media="" data-md-color-scheme="default" data-md-color-primary="blue-grey" data-md-color-accent="deep-orange"  aria-label="Switch to dark mode"  type="radio" name="__palette" id="__palette_1">
+          
+            <label class="md-header__button md-icon" title="Switch to dark mode" for="__palette_2" hidden>
+              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M17 6H7c-3.31 0-6 2.69-6 6s2.69 6 6 6h10c3.31 0 6-2.69 6-6s-2.69-6-6-6zm0 10H7c-2.21 0-4-1.79-4-4s1.79-4 4-4h10c2.21 0 4 1.79 4 4s-1.79 4-4 4zM7 9c-1.66 0-3 1.34-3 3s1.34 3 3 3 3-1.34 3-3-1.34-3-3-3z"/></svg>
+            </label>
+          
+        
+          
+          
+          <input class="md-option" data-md-color-media="" data-md-color-scheme="slate" data-md-color-primary="" data-md-color-accent=""  aria-label="Switch to light mode"  type="radio" name="__palette" id="__palette_2">
+          
+            <label class="md-header__button md-icon" title="Switch to light mode" for="__palette_1" hidden>
+              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M17 7H7a5 5 0 0 0-5 5 5 5 0 0 0 5 5h10a5 5 0 0 0 5-5 5 5 0 0 0-5-5m0 8a3 3 0 0 1-3-3 3 3 0 0 1 3-3 3 3 0 0 1 3 3 3 3 0 0 1-3 3z"/></svg>
+            </label>
+          
+        
+      </form>
+    
+    
+    
+      <label class="md-header__button md-icon" for="__search">
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.516 6.516 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5z"/></svg>
+      </label>
+      
+<div class="md-search" data-md-component="search" role="dialog">
+  <label class="md-search__overlay" for="__search"></label>
+  <div class="md-search__inner" role="search">
+    <form class="md-search__form" name="search">
+      <input type="text" class="md-search__input" name="query" aria-label="搜索" placeholder="搜索" autocapitalize="off" autocorrect="off" autocomplete="off" spellcheck="false" data-md-component="search-query" required>
+      <label class="md-search__icon md-icon" for="__search">
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.516 6.516 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5z"/></svg>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11h12z"/></svg>
+      </label>
+      <nav class="md-search__options" aria-label="Search">
+        
+        <button type="reset" class="md-search__icon md-icon" aria-label="Clear" tabindex="-1">
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M19 6.41 17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12 19 6.41z"/></svg>
+        </button>
+      </nav>
+      
+    </form>
+    <div class="md-search__output">
+      <div class="md-search__scrollwrap" data-md-scrollfix>
+        <div class="md-search-result" data-md-component="search-result">
+          <div class="md-search-result__meta">
+            正在初始化搜索引擎
+          </div>
+          <ol class="md-search-result__list"></ol>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+    
+    
+      <div class="md-header__source">
+        
+<a href="https://github.com/mapan1984/kafka-design/" title="前往仓库" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><path d="M439.55 236.05 244 40.45a28.87 28.87 0 0 0-40.81 0l-40.66 40.63 51.52 51.52c27.06-9.14 52.68 16.77 43.39 43.68l49.66 49.66c34.23-11.8 61.18 31 35.47 56.69-26.49 26.49-70.21-2.87-56-37.34L240.22 199v121.85c25.3 12.54 22.26 41.85 9.08 55a34.34 34.34 0 0 1-48.55 0c-17.57-17.6-11.07-46.91 11.25-56v-123c-20.8-8.51-24.6-30.74-18.64-45L142.57 101 8.45 235.14a28.86 28.86 0 0 0 0 40.81l195.61 195.6a28.86 28.86 0 0 0 40.8 0l194.69-194.69a28.86 28.86 0 0 0 0-40.81z"/></svg>
+  </div>
+  <div class="md-source__repository">
+    GitHub
+  </div>
+</a>
+      </div>
+    
+  </nav>
+  
+</header>
+    
+    <div class="md-container" data-md-component="container">
+      
+      
+        
+          
+        
+      
+      <main class="md-main" data-md-component="main">
+        <div class="md-main__inner md-grid">
+          
+            
+              
+              <div class="md-sidebar md-sidebar--primary" data-md-component="sidebar" data-md-type="navigation" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+
+<nav class="md-nav md-nav--primary" aria-label="Navigation" data-md-level="0">
+  <label class="md-nav__title" for="__drawer">
+    <a href="../../../../.." title="kafka 设计实现解析" class="md-nav__button md-logo" aria-label="kafka 设计实现解析" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54z"/></svg>
+
+    </a>
+    kafka 设计实现解析
+  </label>
+  
+    <div class="md-nav__source">
+      
+<a href="https://github.com/mapan1984/kafka-design/" title="前往仓库" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><path d="M439.55 236.05 244 40.45a28.87 28.87 0 0 0-40.81 0l-40.66 40.63 51.52 51.52c27.06-9.14 52.68 16.77 43.39 43.68l49.66 49.66c34.23-11.8 61.18 31 35.47 56.69-26.49 26.49-70.21-2.87-56-37.34L240.22 199v121.85c25.3 12.54 22.26 41.85 9.08 55a34.34 34.34 0 0 1-48.55 0c-17.57-17.6-11.07-46.91 11.25-56v-123c-20.8-8.51-24.6-30.74-18.64-45L142.57 101 8.45 235.14a28.86 28.86 0 0 0 0 40.81l195.61 195.6a28.86 28.86 0 0 0 40.8 0l194.69-194.69a28.86 28.86 0 0 0 0-40.81z"/></svg>
+  </div>
+  <div class="md-source__repository">
+    GitHub
+  </div>
+</a>
+    </div>
+  
+  <ul class="md-nav__list" data-md-scrollfix>
+    
+      
+      
+      
+
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../../.." class="md-nav__link">
+        0. kafka 设计实现解析
+      </a>
+    </li>
+  
+
+    
+      
+      
+      
+
+  
+  
+  
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+      
+        <input class="md-nav__toggle md-toggle" data-md-toggle="__nav_2" type="checkbox" id="__nav_2" >
+      
+      
+      
+      
+        <label class="md-nav__link" for="__nav_2">
+          <span class="md-nav__icon md-icon"></span>
+          
+            <a href="../../../../../1-server%20%E8%A7%A3%E6%9E%90/" class="md-nav__link"
+              style="margin: initial; padding: initial; pointer-events: initial">
+          
+            1. server 解析
+          </a>
+        </label>
+      
+      <nav class="md-nav" aria-label="1. server 解析" data-md-level="1">
+        <label class="md-nav__title" for="__nav_2">
+          <span class="md-nav__icon md-icon"></span>
+          
+            <a href="../../../../../1-server%20%E8%A7%A3%E6%9E%90/" class="md-nav__link"
+              style="margin: initial; padding: initial; pointer-events: initial">
+          
+            1. server 解析
+          </a>
+        </label>
+        <ul class="md-nav__list" data-md-scrollfix>
+          
+            
+              
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../../../1-server%20%E8%A7%A3%E6%9E%90/1-server%20%E5%90%AF%E5%8A%A8%E8%BF%87%E7%A8%8B/" class="md-nav__link">
+        1.1 server 启动过程
+      </a>
+    </li>
+  
+
+            
+          
+            
+              
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../../../1-server%20%E8%A7%A3%E6%9E%90/2-server%20%E7%BD%91%E7%BB%9C%E6%A8%A1%E5%9E%8B/" class="md-nav__link">
+        1.2 server 网络模型
+      </a>
+    </li>
+  
+
+            
+          
+            
+              
+  
+  
+  
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+      
+        <input class="md-nav__toggle md-toggle" data-md-toggle="__nav_2_3" type="checkbox" id="__nav_2_3" >
+      
+      
+      
+      
+        <label class="md-nav__link" for="__nav_2_3">
+          <span class="md-nav__icon md-icon"></span>
+          
+            <a href="../../../../../1-server%20%E8%A7%A3%E6%9E%90/3-KafkaController/" class="md-nav__link"
+              style="margin: initial; padding: initial; pointer-events: initial">
+          
+            1.3 KafkaController
+          </a>
+        </label>
+      
+      <nav class="md-nav" aria-label="1.3 KafkaController" data-md-level="2">
+        <label class="md-nav__title" for="__nav_2_3">
+          <span class="md-nav__icon md-icon"></span>
+          
+            <a href="../../../../../1-server%20%E8%A7%A3%E6%9E%90/3-KafkaController/" class="md-nav__link"
+              style="margin: initial; padding: initial; pointer-events: initial">
+          
+            1.3 KafkaController
+          </a>
+        </label>
+        <ul class="md-nav__list" data-md-scrollfix>
+          
+            
+              
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../../../1-server%20%E8%A7%A3%E6%9E%90/3-KafkaController/1-controller%E5%90%AF%E5%8A%A8/" class="md-nav__link">
+        1.3.1 KafkaController 启动
+      </a>
+    </li>
+  
+
+            
+          
+            
+              
+  
+  
+  
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+      
+        <input class="md-nav__toggle md-toggle" data-md-toggle="__nav_2_3_2" type="checkbox" id="__nav_2_3_2" >
+      
+      
+      
+      
+        <label class="md-nav__link" for="__nav_2_3_2">
+          <span class="md-nav__icon md-icon"></span>
+          
+            <a href="../../../../../1-server%20%E8%A7%A3%E6%9E%90/3-KafkaController/2-controller%E7%BB%84%E4%BB%B6/" class="md-nav__link"
+              style="margin: initial; padding: initial; pointer-events: initial">
+          
+            1.3.2 KafkaController 组件
+          </a>
+        </label>
+      
+      <nav class="md-nav" aria-label="1.3.2 KafkaController 组件" data-md-level="3">
+        <label class="md-nav__title" for="__nav_2_3_2">
+          <span class="md-nav__icon md-icon"></span>
+          
+            <a href="../../../../../1-server%20%E8%A7%A3%E6%9E%90/3-KafkaController/2-controller%E7%BB%84%E4%BB%B6/" class="md-nav__link"
+              style="margin: initial; padding: initial; pointer-events: initial">
+          
+            1.3.2 KafkaController 组件
+          </a>
+        </label>
+        <ul class="md-nav__list" data-md-scrollfix>
+          
+            
+              
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../../../1-server%20%E8%A7%A3%E6%9E%90/3-KafkaController/2-controller%E7%BB%84%E4%BB%B6/1-ControllerContext/" class="md-nav__link">
+        1.3.2.1 ControllerContext
+      </a>
+    </li>
+  
+
+            
+          
+            
+              
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../../../1-server%20%E8%A7%A3%E6%9E%90/3-KafkaController/2-controller%E7%BB%84%E4%BB%B6/2-ReplicaStateMachine/" class="md-nav__link">
+        1.3.2.2 ReplicaStateMachine
+      </a>
+    </li>
+  
+
+            
+          
+            
+              
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../../../1-server%20%E8%A7%A3%E6%9E%90/3-KafkaController/2-controller%E7%BB%84%E4%BB%B6/3-PartitionStateMachine/" class="md-nav__link">
+        1.3.2.3 PartitionStateMachine
+      </a>
+    </li>
+  
+
+            
+          
+            
+              
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../../../1-server%20%E8%A7%A3%E6%9E%90/3-KafkaController/2-controller%E7%BB%84%E4%BB%B6/4-ControllerChannelManager/" class="md-nav__link">
+        1.3.2.4 ControllerChannelManager
+      </a>
+    </li>
+  
+
+            
+          
+        </ul>
+      </nav>
+    </li>
+  
+
+            
+          
+            
+              
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../../../1-server%20%E8%A7%A3%E6%9E%90/3-KafkaController/3-reassign-partitions/" class="md-nav__link">
+        1.3.3 reassign partitions
+      </a>
+    </li>
+  
+
+            
+          
+            
+              
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../../../1-server%20%E8%A7%A3%E6%9E%90/3-KafkaController/4-delete-topic/" class="md-nav__link">
+        1.3.4 delete topic
+      </a>
+    </li>
+  
+
+            
+          
+        </ul>
+      </nav>
+    </li>
+  
+
+            
+          
+            
+              
+  
+  
+  
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+      
+        <input class="md-nav__toggle md-toggle" data-md-toggle="__nav_2_4" type="checkbox" id="__nav_2_4" >
+      
+      
+      
+      
+        <label class="md-nav__link" for="__nav_2_4">
+          <span class="md-nav__icon md-icon"></span>
+          
+            <a href="../../../../../1-server%20%E8%A7%A3%E6%9E%90/4-ReplicaManager/" class="md-nav__link"
+              style="margin: initial; padding: initial; pointer-events: initial">
+          
+            1.4 ReplicaManager
+          </a>
+        </label>
+      
+      <nav class="md-nav" aria-label="1.4 ReplicaManager" data-md-level="2">
+        <label class="md-nav__title" for="__nav_2_4">
+          <span class="md-nav__icon md-icon"></span>
+          
+            <a href="../../../../../1-server%20%E8%A7%A3%E6%9E%90/4-ReplicaManager/" class="md-nav__link"
+              style="margin: initial; padding: initial; pointer-events: initial">
+          
+            1.4 ReplicaManager
+          </a>
+        </label>
+        <ul class="md-nav__list" data-md-scrollfix>
+          
+            
+              
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../../../1-server%20%E8%A7%A3%E6%9E%90/4-ReplicaManager/1-replica%20manager%20%E5%90%AF%E5%8A%A8/" class="md-nav__link">
+        1.4.1 ReplicaManager 启动
+      </a>
+    </li>
+  
+
+            
+          
+        </ul>
+      </nav>
+    </li>
+  
+
+            
+          
+            
+              
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../../../1-server%20%E8%A7%A3%E6%9E%90/5-GroupCoordinator/" class="md-nav__link">
+        1.5 GroupCoordinator
+      </a>
+    </li>
+  
+
+            
+          
+            
+              
+  
+  
+  
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+      
+        <input class="md-nav__toggle md-toggle" data-md-toggle="__nav_2_6" type="checkbox" id="__nav_2_6" >
+      
+      
+      
+      
+        <label class="md-nav__link" for="__nav_2_6">
+          <span class="md-nav__icon md-icon"></span>
+          
+            <a href="../../../../../1-server%20%E8%A7%A3%E6%9E%90/6-LogManager/" class="md-nav__link"
+              style="margin: initial; padding: initial; pointer-events: initial">
+          
+            1.6 LogManager
+          </a>
+        </label>
+      
+      <nav class="md-nav" aria-label="1.6 LogManager" data-md-level="2">
+        <label class="md-nav__title" for="__nav_2_6">
+          <span class="md-nav__icon md-icon"></span>
+          
+            <a href="../../../../../1-server%20%E8%A7%A3%E6%9E%90/6-LogManager/" class="md-nav__link"
+              style="margin: initial; padding: initial; pointer-events: initial">
+          
+            1.6 LogManager
+          </a>
+        </label>
+        <ul class="md-nav__list" data-md-scrollfix>
+          
+            
+              
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../../../1-server%20%E8%A7%A3%E6%9E%90/6-LogManager/1-LogManager%20%E5%90%AF%E5%8A%A8/" class="md-nav__link">
+        1.6.1 LogManager 启动
+      </a>
+    </li>
+  
+
+            
+          
+            
+              
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../../../1-server%20%E8%A7%A3%E6%9E%90/6-LogManager/2-%E6%97%A5%E5%BF%97%E6%B8%85%E7%90%86/" class="md-nav__link">
+        1.6.2 日志清理
+      </a>
+    </li>
+  
+
+            
+          
+            
+              
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../../../1-server%20%E8%A7%A3%E6%9E%90/6-LogManager/3-flush%20log/" class="md-nav__link">
+        1.6.3 flush log
+      </a>
+    </li>
+  
+
+            
+          
+        </ul>
+      </nav>
+    </li>
+  
+
+            
+          
+        </ul>
+      </nav>
+    </li>
+  
+
+    
+      
+      
+      
+
+  
+  
+  
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+      
+        <input class="md-nav__toggle md-toggle" data-md-toggle="__nav_3" type="checkbox" id="__nav_3" >
+      
+      
+      
+      
+        <label class="md-nav__link" for="__nav_3">
+          <span class="md-nav__icon md-icon"></span>
+          
+            <a href="../../../../../2-producer%20%E8%A7%A3%E6%9E%90/" class="md-nav__link"
+              style="margin: initial; padding: initial; pointer-events: initial">
+          
+            2. producer 解析
+          </a>
+        </label>
+      
+      <nav class="md-nav" aria-label="2. producer 解析" data-md-level="1">
+        <label class="md-nav__title" for="__nav_3">
+          <span class="md-nav__icon md-icon"></span>
+          
+            <a href="../../../../../2-producer%20%E8%A7%A3%E6%9E%90/" class="md-nav__link"
+              style="margin: initial; padding: initial; pointer-events: initial">
+          
+            2. producer 解析
+          </a>
+        </label>
+        <ul class="md-nav__list" data-md-scrollfix>
+          
+            
+              
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../../../2-producer%20%E8%A7%A3%E6%9E%90/1-producer%20%E5%8F%91%E9%80%81%E6%B6%88%E6%81%AF/" class="md-nav__link">
+        2.1 producer 发送消息
+      </a>
+    </li>
+  
+
+            
+          
+            
+              
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../../../2-producer%20%E8%A7%A3%E6%9E%90/2-producer%20%E5%B9%82%E7%AD%89%E6%80%A7/" class="md-nav__link">
+        2.2 producer 幂等性
+      </a>
+    </li>
+  
+
+            
+          
+            
+              
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../../../2-producer%20%E8%A7%A3%E6%9E%90/3-producer%20%E5%8A%A0%E5%AF%86%20%E8%AE%A4%E8%AF%81/" class="md-nav__link">
+        2.3 producer 加密/认证
+      </a>
+    </li>
+  
+
+            
+          
+        </ul>
+      </nav>
+    </li>
+  
+
+    
+      
+      
+      
+
+  
+  
+  
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+      
+        <input class="md-nav__toggle md-toggle" data-md-toggle="__nav_4" type="checkbox" id="__nav_4" >
+      
+      
+      
+      
+        <label class="md-nav__link" for="__nav_4">
+          <span class="md-nav__icon md-icon"></span>
+          
+            <a href="../../../../../3-consumer%20%E8%A7%A3%E6%9E%90/" class="md-nav__link"
+              style="margin: initial; padding: initial; pointer-events: initial">
+          
+            3. consumer 解析
+          </a>
+        </label>
+      
+      <nav class="md-nav" aria-label="3. consumer 解析" data-md-level="1">
+        <label class="md-nav__title" for="__nav_4">
+          <span class="md-nav__icon md-icon"></span>
+          
+            <a href="../../../../../3-consumer%20%E8%A7%A3%E6%9E%90/" class="md-nav__link"
+              style="margin: initial; padding: initial; pointer-events: initial">
+          
+            3. consumer 解析
+          </a>
+        </label>
+        <ul class="md-nav__list" data-md-scrollfix>
+          
+            
+              
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../../../3-consumer%20%E8%A7%A3%E6%9E%90/1-%E6%B6%88%E8%B4%B9%E7%BB%84%E7%AE%A1%E7%90%86/" class="md-nav__link">
+        3.1-消费组管理
+      </a>
+    </li>
+  
+
+            
+          
+        </ul>
+      </nav>
+    </li>
+  
+
+    
+      
+      
+      
+
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../../../4-kafka-network-io/" class="md-nav__link">
+        4. kafka network io
+      </a>
+    </li>
+  
+
+    
+      
+      
+      
+
+  
+  
+  
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+      
+        <input class="md-nav__toggle md-toggle" data-md-toggle="__nav_6" type="checkbox" id="__nav_6" >
+      
+      
+      
+      
+        <label class="md-nav__link" for="__nav_6">
+          <span class="md-nav__icon md-icon"></span>
+          
+            <a href="../../../../../5-release%20note/" class="md-nav__link"
+              style="margin: initial; padding: initial; pointer-events: initial">
+          
+            5. Release Note
+          </a>
+        </label>
+      
+      <nav class="md-nav" aria-label="5. Release Note" data-md-level="1">
+        <label class="md-nav__title" for="__nav_6">
+          <span class="md-nav__icon md-icon"></span>
+          
+            <a href="../../../../../5-release%20note/" class="md-nav__link"
+              style="margin: initial; padding: initial; pointer-events: initial">
+          
+            5. Release Note
+          </a>
+        </label>
+        <ul class="md-nav__list" data-md-scrollfix>
+          
+            
+              
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../../../5-release%20note/2.7/" class="md-nav__link">
+        2.7
+      </a>
+    </li>
+  
+
+            
+          
+            
+              
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../../../5-release%20note/2.8.0/" class="md-nav__link">
+        2.8.0
+      </a>
+    </li>
+  
+
+            
+          
+        </ul>
+      </nav>
+    </li>
+  
+
+    
+      
+      
+      
+
+  
+  
+    
+  
+  
+    
+    <li class="md-nav__item md-nav__item--active md-nav__item--nested">
+      
+      
+        <input class="md-nav__toggle md-toggle" data-md-toggle="__nav_7" type="checkbox" id="__nav_7" checked>
+      
+      
+      
+      
+        <label class="md-nav__link" for="__nav_7">
+          <span class="md-nav__icon md-icon"></span>
+          
+            <a href="../../../../" class="md-nav__link"
+              style="margin: initial; padding: initial; pointer-events: initial">
+          
+            6. Src
+          </a>
+        </label>
+      
+      <nav class="md-nav" aria-label="6. Src" data-md-level="1">
+        <label class="md-nav__title" for="__nav_7">
+          <span class="md-nav__icon md-icon"></span>
+          
+            <a href="../../../../" class="md-nav__link"
+              style="margin: initial; padding: initial; pointer-events: initial">
+          
+            6. Src
+          </a>
+        </label>
+        <ul class="md-nav__list" data-md-scrollfix>
+          
+            
+              
+  
+  
+  
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+      
+        <input class="md-nav__toggle md-toggle" data-md-toggle="__nav_7_1" type="checkbox" id="__nav_7_1" >
+      
+      
+      
+      
+        <label class="md-nav__link" for="__nav_7_1">
+          <span class="md-nav__icon md-icon"></span>
+          
+            Clients
+          
+        </label>
+      
+      <nav class="md-nav" aria-label="Clients" data-md-level="2">
+        <label class="md-nav__title" for="__nav_7_1">
+          <span class="md-nav__icon md-icon"></span>
+          
+            Clients
+          
+        </label>
+        <ul class="md-nav__list" data-md-scrollfix>
+          
+            
+              
+  
+  
+  
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+      
+        <input class="md-nav__toggle md-toggle" data-md-toggle="__nav_7_1_1" type="checkbox" id="__nav_7_1_1" >
+      
+      
+      
+      
+        <label class="md-nav__link" for="__nav_7_1_1">
+          <span class="md-nav__icon md-icon"></span>
+          
+            Clients
+          
+        </label>
+      
+      <nav class="md-nav" aria-label="Clients" data-md-level="3">
+        <label class="md-nav__title" for="__nav_7_1_1">
+          <span class="md-nav__icon md-icon"></span>
+          
+            Clients
+          
+        </label>
+        <ul class="md-nav__list" data-md-scrollfix>
+          
+            
+              
+  
+  
+  
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+      
+        <input class="md-nav__toggle md-toggle" data-md-toggle="__nav_7_1_1_1" type="checkbox" id="__nav_7_1_1_1" >
+      
+      
+      
+      
+        <label class="md-nav__link" for="__nav_7_1_1_1">
+          <span class="md-nav__icon md-icon"></span>
+          
+            Producer
+          
+        </label>
+      
+      <nav class="md-nav" aria-label="Producer" data-md-level="4">
+        <label class="md-nav__title" for="__nav_7_1_1_1">
+          <span class="md-nav__icon md-icon"></span>
+          
+            Producer
+          
+        </label>
+        <ul class="md-nav__list" data-md-scrollfix>
+          
+            
+              
+  
+  
+  
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+      
+        <input class="md-nav__toggle md-toggle" data-md-toggle="__nav_7_1_1_1_1" type="checkbox" id="__nav_7_1_1_1_1" >
+      
+      
+      
+      
+        <label class="md-nav__link" for="__nav_7_1_1_1_1">
+          <span class="md-nav__icon md-icon"></span>
+          
+            Internals
+          
+        </label>
+      
+      <nav class="md-nav" aria-label="Internals" data-md-level="5">
+        <label class="md-nav__title" for="__nav_7_1_1_1_1">
+          <span class="md-nav__icon md-icon"></span>
+          
+            Internals
+          
+        </label>
+        <ul class="md-nav__list" data-md-scrollfix>
+          
+            
+              
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../../clients/clients/producer/internals/ProducerBatch/" class="md-nav__link">
+        Producer Batch
+      </a>
+    </li>
+  
+
+            
+          
+            
+              
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../../clients/clients/producer/internals/ProducerMetadata/" class="md-nav__link">
+        Producer Metadata
+      </a>
+    </li>
+  
+
+            
+          
+            
+              
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../../clients/clients/producer/internals/RecordAccumulator/" class="md-nav__link">
+        Record Accumulator
+      </a>
+    </li>
+  
+
+            
+          
+            
+              
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../../clients/clients/producer/internals/Sender/" class="md-nav__link">
+        Sender
+      </a>
+    </li>
+  
+
+            
+          
+        </ul>
+      </nav>
+    </li>
+  
+
+            
+          
+            
+              
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../../clients/clients/producer/KafkaProducer/" class="md-nav__link">
+        Kafka Producer
+      </a>
+    </li>
+  
+
+            
+          
+        </ul>
+      </nav>
+    </li>
+  
+
+            
+          
+            
+              
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../../clients/clients/Metadata/" class="md-nav__link">
+        Metadata
+      </a>
+    </li>
+  
+
+            
+          
+            
+              
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../../clients/clients/NetworkClient/" class="md-nav__link">
+        Network Client
+      </a>
+    </li>
+  
+
+            
+          
+        </ul>
+      </nav>
+    </li>
+  
+
+            
+          
+            
+              
+  
+  
+  
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+      
+        <input class="md-nav__toggle md-toggle" data-md-toggle="__nav_7_1_2" type="checkbox" id="__nav_7_1_2" >
+      
+      
+      
+      
+        <label class="md-nav__link" for="__nav_7_1_2">
+          <span class="md-nav__icon md-icon"></span>
+          
+            Common
+          
+        </label>
+      
+      <nav class="md-nav" aria-label="Common" data-md-level="3">
+        <label class="md-nav__title" for="__nav_7_1_2">
+          <span class="md-nav__icon md-icon"></span>
+          
+            Common
+          
+        </label>
+        <ul class="md-nav__list" data-md-scrollfix>
+          
+            
+              
+  
+  
+  
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+      
+        <input class="md-nav__toggle md-toggle" data-md-toggle="__nav_7_1_2_1" type="checkbox" id="__nav_7_1_2_1" >
+      
+      
+      
+      
+        <label class="md-nav__link" for="__nav_7_1_2_1">
+          <span class="md-nav__icon md-icon"></span>
+          
+            Network
+          
+        </label>
+      
+      <nav class="md-nav" aria-label="Network" data-md-level="4">
+        <label class="md-nav__title" for="__nav_7_1_2_1">
+          <span class="md-nav__icon md-icon"></span>
+          
+            Network
+          
+        </label>
+        <ul class="md-nav__list" data-md-scrollfix>
+          
+            
+              
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../../clients/common/network/KafkaChannel/" class="md-nav__link">
+        Kafka Channel
+      </a>
+    </li>
+  
+
+            
+          
+            
+              
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../../clients/common/network/NetworkReceive/" class="md-nav__link">
+        Network Receive
+      </a>
+    </li>
+  
+
+            
+          
+            
+              
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../../clients/common/network/NetworkSend/" class="md-nav__link">
+        Network Send
+      </a>
+    </li>
+  
+
+            
+          
+            
+              
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../../clients/common/network/Receive/" class="md-nav__link">
+        Receive
+      </a>
+    </li>
+  
+
+            
+          
+            
+              
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../../clients/common/network/Selector/" class="md-nav__link">
+        Selector
+      </a>
+    </li>
+  
+
+            
+          
+            
+              
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../../clients/common/network/Send/" class="md-nav__link">
+        Send
+      </a>
+    </li>
+  
+
+            
+          
+            
+              
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../../clients/common/network/TransportLayer/" class="md-nav__link">
+        Transport Layer
+      </a>
+    </li>
+  
+
+            
+          
+        </ul>
+      </nav>
+    </li>
+  
+
+            
+          
+            
+              
+  
+  
+  
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+      
+        <input class="md-nav__toggle md-toggle" data-md-toggle="__nav_7_1_2_2" type="checkbox" id="__nav_7_1_2_2" >
+      
+      
+      
+      
+        <label class="md-nav__link" for="__nav_7_1_2_2">
+          <span class="md-nav__icon md-icon"></span>
+          
+            Utils
+          
+        </label>
+      
+      <nav class="md-nav" aria-label="Utils" data-md-level="4">
+        <label class="md-nav__title" for="__nav_7_1_2_2">
+          <span class="md-nav__icon md-icon"></span>
+          
+            Utils
+          
+        </label>
+        <ul class="md-nav__list" data-md-scrollfix>
+          
+            
+              
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../../clients/common/utils/KafkaThread/" class="md-nav__link">
+        Kafka Thread
+      </a>
+    </li>
+  
+
+            
+          
+        </ul>
+      </nav>
+    </li>
+  
+
+            
+          
+        </ul>
+      </nav>
+    </li>
+  
+
+            
+          
+        </ul>
+      </nav>
+    </li>
+  
+
+            
+          
+            
+              
+  
+  
+    
+  
+  
+    
+    <li class="md-nav__item md-nav__item--active md-nav__item--nested">
+      
+      
+        <input class="md-nav__toggle md-toggle" data-md-toggle="__nav_7_2" type="checkbox" id="__nav_7_2" checked>
+      
+      
+      
+      
+        <label class="md-nav__link" for="__nav_7_2">
+          <span class="md-nav__icon md-icon"></span>
+          
+            Core
+          
+        </label>
+      
+      <nav class="md-nav" aria-label="Core" data-md-level="2">
+        <label class="md-nav__title" for="__nav_7_2">
+          <span class="md-nav__icon md-icon"></span>
+          
+            Core
+          
+        </label>
+        <ul class="md-nav__list" data-md-scrollfix>
+          
+            
+              
+  
+  
+    
+  
+  
+    
+    <li class="md-nav__item md-nav__item--active md-nav__item--nested">
+      
+      
+        <input class="md-nav__toggle md-toggle" data-md-toggle="__nav_7_2_1" type="checkbox" id="__nav_7_2_1" checked>
+      
+      
+      
+      
+        <label class="md-nav__link" for="__nav_7_2_1">
+          <span class="md-nav__icon md-icon"></span>
+          
+            <a href="../../" class="md-nav__link"
+              style="margin: initial; padding: initial; pointer-events: initial">
+          
+            Kafka
+          </a>
+        </label>
+      
+      <nav class="md-nav" aria-label="Kafka" data-md-level="3">
+        <label class="md-nav__title" for="__nav_7_2_1">
+          <span class="md-nav__icon md-icon"></span>
+          
+            <a href="../../" class="md-nav__link"
+              style="margin: initial; padding: initial; pointer-events: initial">
+          
+            Kafka
+          </a>
+        </label>
+        <ul class="md-nav__list" data-md-scrollfix>
+          
+            
+              
+  
+  
+  
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+      
+        <input class="md-nav__toggle md-toggle" data-md-toggle="__nav_7_2_1_1" type="checkbox" id="__nav_7_2_1_1" >
+      
+      
+      
+      
+        <label class="md-nav__link" for="__nav_7_2_1_1">
+          <span class="md-nav__icon md-icon"></span>
+          
+            Controller
+          
+        </label>
+      
+      <nav class="md-nav" aria-label="Controller" data-md-level="4">
+        <label class="md-nav__title" for="__nav_7_2_1_1">
+          <span class="md-nav__icon md-icon"></span>
+          
+            Controller
+          
+        </label>
+        <ul class="md-nav__list" data-md-scrollfix>
+          
+            
+              
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../controller/ControllerState/" class="md-nav__link">
+        ControllerState
+      </a>
+    </li>
+  
+
+            
+          
+            
+              
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../controller/ReplicaStateMachine/" class="md-nav__link">
+        ReplicaStateMachine
+      </a>
+    </li>
+  
+
+            
+          
+            
+              
+  
+  
+  
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+      
+        <input class="md-nav__toggle md-toggle" data-md-toggle="__nav_7_2_1_1_3" type="checkbox" id="__nav_7_2_1_1_3" >
+      
+      
+      
+      
+        <label class="md-nav__link" for="__nav_7_2_1_1_3">
+          <span class="md-nav__icon md-icon"></span>
+          
+            <a href="../../controller/ControllerContext/" class="md-nav__link"
+              style="margin: initial; padding: initial; pointer-events: initial">
+          
+            ControllerContext
+          </a>
+        </label>
+      
+      <nav class="md-nav" aria-label="ControllerContext" data-md-level="5">
+        <label class="md-nav__title" for="__nav_7_2_1_1_3">
+          <span class="md-nav__icon md-icon"></span>
+          
+            <a href="../../controller/ControllerContext/" class="md-nav__link"
+              style="margin: initial; padding: initial; pointer-events: initial">
+          
+            ControllerContext
+          </a>
+        </label>
+        <ul class="md-nav__list" data-md-scrollfix>
+          
+            
+              
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../controller/ControllerContext/ReplicaAssignment/" class="md-nav__link">
+        ReplicaAssignment
+      </a>
+    </li>
+  
+
+            
+          
+        </ul>
+      </nav>
+    </li>
+  
+
+            
+          
+            
+              
+  
+  
+  
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+      
+        <input class="md-nav__toggle md-toggle" data-md-toggle="__nav_7_2_1_1_4" type="checkbox" id="__nav_7_2_1_1_4" >
+      
+      
+      
+      
+        <label class="md-nav__link" for="__nav_7_2_1_1_4">
+          <span class="md-nav__icon md-icon"></span>
+          
+            <a href="../../controller/ControllerEventManager/" class="md-nav__link"
+              style="margin: initial; padding: initial; pointer-events: initial">
+          
+            ControllerEventManager
+          </a>
+        </label>
+      
+      <nav class="md-nav" aria-label="ControllerEventManager" data-md-level="5">
+        <label class="md-nav__title" for="__nav_7_2_1_1_4">
+          <span class="md-nav__icon md-icon"></span>
+          
+            <a href="../../controller/ControllerEventManager/" class="md-nav__link"
+              style="margin: initial; padding: initial; pointer-events: initial">
+          
+            ControllerEventManager
+          </a>
+        </label>
+        <ul class="md-nav__list" data-md-scrollfix>
+          
+            
+              
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../controller/ControllerEventManager/ControllerEventProcessor/" class="md-nav__link">
+        ControllerEventProcessor
+      </a>
+    </li>
+  
+
+            
+          
+            
+              
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../controller/ControllerEventManager/ControllerEventThread/" class="md-nav__link">
+        ControllerEventThread
+      </a>
+    </li>
+  
+
+            
+          
+            
+              
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../controller/ControllerEventManager/QueueEvent/" class="md-nav__link">
+        QueueEvent
+      </a>
+    </li>
+  
+
+            
+          
+        </ul>
+      </nav>
+    </li>
+  
+
+            
+          
+            
+              
+  
+  
+  
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+      
+        <input class="md-nav__toggle md-toggle" data-md-toggle="__nav_7_2_1_1_5" type="checkbox" id="__nav_7_2_1_1_5" >
+      
+      
+      
+      
+        <label class="md-nav__link" for="__nav_7_2_1_1_5">
+          <span class="md-nav__icon md-icon"></span>
+          
+            <a href="../../controller/KafkaController/" class="md-nav__link"
+              style="margin: initial; padding: initial; pointer-events: initial">
+          
+            KafkaController
+          </a>
+        </label>
+      
+      <nav class="md-nav" aria-label="KafkaController" data-md-level="5">
+        <label class="md-nav__title" for="__nav_7_2_1_1_5">
+          <span class="md-nav__icon md-icon"></span>
+          
+            <a href="../../controller/KafkaController/" class="md-nav__link"
+              style="margin: initial; padding: initial; pointer-events: initial">
+          
+            KafkaController
+          </a>
+        </label>
+        <ul class="md-nav__list" data-md-scrollfix>
+          
+            
+              
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../controller/KafkaController/ControllerEvent/" class="md-nav__link">
+        ControllerEvent
+      </a>
+    </li>
+  
+
+            
+          
+        </ul>
+      </nav>
+    </li>
+  
+
+            
+          
+        </ul>
+      </nav>
+    </li>
+  
+
+            
+          
+            
+              
+  
+  
+  
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+      
+        <input class="md-nav__toggle md-toggle" data-md-toggle="__nav_7_2_1_2" type="checkbox" id="__nav_7_2_1_2" >
+      
+      
+      
+      
+        <label class="md-nav__link" for="__nav_7_2_1_2">
+          <span class="md-nav__icon md-icon"></span>
+          
+            Network
+          
+        </label>
+      
+      <nav class="md-nav" aria-label="Network" data-md-level="4">
+        <label class="md-nav__title" for="__nav_7_2_1_2">
+          <span class="md-nav__icon md-icon"></span>
+          
+            Network
+          
+        </label>
+        <ul class="md-nav__list" data-md-scrollfix>
+          
+            
+              
+  
+  
+  
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+      
+        <input class="md-nav__toggle md-toggle" data-md-toggle="__nav_7_2_1_2_1" type="checkbox" id="__nav_7_2_1_2_1" >
+      
+      
+      
+      
+        <label class="md-nav__link" for="__nav_7_2_1_2_1">
+          <span class="md-nav__icon md-icon"></span>
+          
+            <a href="../../network/SocketServer/" class="md-nav__link"
+              style="margin: initial; padding: initial; pointer-events: initial">
+          
+            Socket Server
+          </a>
+        </label>
+      
+      <nav class="md-nav" aria-label="Socket Server" data-md-level="5">
+        <label class="md-nav__title" for="__nav_7_2_1_2_1">
+          <span class="md-nav__icon md-icon"></span>
+          
+            <a href="../../network/SocketServer/" class="md-nav__link"
+              style="margin: initial; padding: initial; pointer-events: initial">
+          
+            Socket Server
+          </a>
+        </label>
+        <ul class="md-nav__list" data-md-scrollfix>
+          
+            
+              
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../network/SocketServer/Acceptor/" class="md-nav__link">
+        Acceptor
+      </a>
+    </li>
+  
+
+            
+          
+            
+              
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../network/SocketServer/Processor/" class="md-nav__link">
+        Processor
+      </a>
+    </li>
+  
+
+            
+          
+        </ul>
+      </nav>
+    </li>
+  
+
+            
+          
+            
+              
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../network/RequestChannel/" class="md-nav__link">
+        Request Channel
+      </a>
+    </li>
+  
+
+            
+          
+        </ul>
+      </nav>
+    </li>
+  
+
+            
+          
+            
+              
+  
+  
+    
+  
+  
+    
+    <li class="md-nav__item md-nav__item--active md-nav__item--nested">
+      
+      
+        <input class="md-nav__toggle md-toggle" data-md-toggle="__nav_7_2_1_3" type="checkbox" id="__nav_7_2_1_3" checked>
+      
+      
+      
+      
+        <label class="md-nav__link" for="__nav_7_2_1_3">
+          <span class="md-nav__icon md-icon"></span>
+          
+            Server
+          
+        </label>
+      
+      <nav class="md-nav" aria-label="Server" data-md-level="4">
+        <label class="md-nav__title" for="__nav_7_2_1_3">
+          <span class="md-nav__icon md-icon"></span>
+          
+            Server
+          
+        </label>
+        <ul class="md-nav__list" data-md-scrollfix>
+          
+            
+              
+  
+  
+  
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+      
+        <input class="md-nav__toggle md-toggle" data-md-toggle="__nav_7_2_1_3_1" type="checkbox" id="__nav_7_2_1_3_1" >
+      
+      
+      
+      
+        <label class="md-nav__link" for="__nav_7_2_1_3_1">
+          <span class="md-nav__icon md-icon"></span>
+          
+            <a href="../KafkaRequestHandler/" class="md-nav__link"
+              style="margin: initial; padding: initial; pointer-events: initial">
+          
+            Kafka Request Handler
+          </a>
+        </label>
+      
+      <nav class="md-nav" aria-label="Kafka Request Handler" data-md-level="5">
+        <label class="md-nav__title" for="__nav_7_2_1_3_1">
+          <span class="md-nav__icon md-icon"></span>
+          
+            <a href="../KafkaRequestHandler/" class="md-nav__link"
+              style="margin: initial; padding: initial; pointer-events: initial">
+          
+            Kafka Request Handler
+          </a>
+        </label>
+        <ul class="md-nav__list" data-md-scrollfix>
+          
+            
+              
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../KafkaRequestHandler/KafkaRequestHandlerPool/" class="md-nav__link">
+        Kafka Request Handler Pool
+      </a>
+    </li>
+  
+
+            
+          
+        </ul>
+      </nav>
+    </li>
+  
+
+            
+          
+            
+              
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../KafkaApis/" class="md-nav__link">
+        Kafka Apis
+      </a>
+    </li>
+  
+
+            
+          
+            
+              
+  
+  
+    
+  
+  
+    <li class="md-nav__item md-nav__item--active">
+      
+      <input class="md-nav__toggle md-toggle" data-md-toggle="toc" type="checkbox" id="__toc">
+      
+      
+        
+      
+      
+        <label class="md-nav__link md-nav__link--active" for="__toc">
+          <span class="md-nav__icon md-icon"></span>
+          
+            <a href="./" class="md-nav__link md-nav__link--active"
+              style="margin: initial; padding: initial; pointer-events: initial">
+          
+            Kafka Server
+          </a>
+        </label>
+      
+      <a href="./" class="md-nav__link md-nav__link--active">
+        Kafka Server
+      </a>
+      
+        
+<nav class="md-nav md-nav--secondary" aria-label="目录">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      目录
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#_1" class="md-nav__link">
+    方法
+  </a>
+  
+    <nav class="md-nav" aria-label="方法">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#startup" class="md-nav__link">
+    startup
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+      
+    </li>
+  
+
+            
+          
+        </ul>
+      </nav>
+    </li>
+  
+
+            
+          
+            
+              
+  
+  
+  
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+      
+        <input class="md-nav__toggle md-toggle" data-md-toggle="__nav_7_2_1_4" type="checkbox" id="__nav_7_2_1_4" >
+      
+      
+      
+      
+        <label class="md-nav__link" for="__nav_7_2_1_4">
+          <span class="md-nav__icon md-icon"></span>
+          
+            Utils
+          
+        </label>
+      
+      <nav class="md-nav" aria-label="Utils" data-md-level="4">
+        <label class="md-nav__title" for="__nav_7_2_1_4">
+          <span class="md-nav__icon md-icon"></span>
+          
+            Utils
+          
+        </label>
+        <ul class="md-nav__list" data-md-scrollfix>
+          
+            
+              
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../utils/KafkaScheduler/" class="md-nav__link">
+        Kafka Scheduler
+      </a>
+    </li>
+  
+
+            
+          
+        </ul>
+      </nav>
+    </li>
+  
+
+            
+          
+        </ul>
+      </nav>
+    </li>
+  
+
+            
+          
+        </ul>
+      </nav>
+    </li>
+  
+
+            
+          
+        </ul>
+      </nav>
+    </li>
+  
+
+    
+      
+      
+      
+
+  
+  
+  
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+      
+        <input class="md-nav__toggle md-toggle" data-md-toggle="__nav_8" type="checkbox" id="__nav_8" >
+      
+      
+      
+      
+        <label class="md-nav__link" for="__nav_8">
+          <span class="md-nav__icon md-icon"></span>
+          
+            7. 其他
+          
+        </label>
+      
+      <nav class="md-nav" aria-label="7. 其他" data-md-level="1">
+        <label class="md-nav__title" for="__nav_8">
+          <span class="md-nav__icon md-icon"></span>
+          
+            7. 其他
+          
+        </label>
+        <ul class="md-nav__list" data-md-scrollfix>
+          
+            
+              
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../../../7-other/1-topic-name-limit/" class="md-nav__link">
+        7.1 topic 名规则
+      </a>
+    </li>
+  
+
+            
+          
+        </ul>
+      </nav>
+    </li>
+  
+
+    
+  </ul>
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+            
+              
+              <div class="md-sidebar md-sidebar--secondary" data-md-component="sidebar" data-md-type="toc" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+<nav class="md-nav md-nav--secondary" aria-label="目录">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      目录
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#_1" class="md-nav__link">
+    方法
+  </a>
+  
+    <nav class="md-nav" aria-label="方法">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#startup" class="md-nav__link">
+    startup
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+          
+          <div class="md-content" data-md-component="content">
+            <article class="md-content__inner md-typeset">
+              
+                
+                  <a href="https://github.com/mapan1984/kafka-design/edit/master/docs/6-src/core/kafka/server/KafkaServer.md" title="编辑此页" class="md-content__button md-icon">
+                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20.71 7.04c.39-.39.39-1.04 0-1.41l-2.34-2.34c-.37-.39-1.02-.39-1.41 0l-1.84 1.83 3.75 3.75M3 17.25V21h3.75L17.81 9.93l-3.75-3.75L3 17.25z"/></svg>
+                  </a>
+                
+                
+                <h1 id="kafkaserver">KafkaServer</h1>
+<h2 id="_1">方法</h2>
+<h3 id="startup">startup</h3>
+<div class="highlight"><pre><span></span><code><span class="cm">/**</span>
+<span class="cm"> * Start up API for bringing up a single instance of the Kafka server.</span>
+<span class="cm"> * Instantiates the LogManager, the SocketServer and the request handlers - KafkaRequestHandlers</span>
+<span class="cm"> */</span>
+<span class="k">override</span> <span class="k">def</span> <span class="nf">startup</span><span class="p">():</span> <span class="nc">Unit</span> <span class="o">=</span> <span class="p">{</span>
+  <span class="k">try</span> <span class="p">{</span>
+    <span class="n">info</span><span class="p">(</span><span class="s">&quot;starting&quot;</span><span class="p">)</span>
+
+    <span class="k">if</span> <span class="p">(</span><span class="n">isShuttingDown</span><span class="p">.</span><span class="n">get</span><span class="p">)</span>
+      <span class="k">throw</span> <span class="k">new</span> <span class="nc">IllegalStateException</span><span class="p">(</span><span class="s">&quot;Kafka server is still shutting down, cannot re-start!&quot;</span><span class="p">)</span>
+
+    <span class="k">if</span> <span class="p">(</span><span class="n">startupComplete</span><span class="p">.</span><span class="n">get</span><span class="p">)</span>
+      <span class="k">return</span>
+
+    <span class="kd">val</span> <span class="n">canStartup</span> <span class="o">=</span> <span class="n">isStartingUp</span><span class="p">.</span><span class="n">compareAndSet</span><span class="p">(</span><span class="kc">false</span><span class="p">,</span> <span class="kc">true</span><span class="p">)</span>
+    <span class="k">if</span> <span class="p">(</span><span class="n">canStartup</span><span class="p">)</span> <span class="p">{</span>
+      <span class="n">brokerState</span><span class="p">.</span><span class="n">set</span><span class="p">(</span><span class="nc">BrokerState</span><span class="p">.</span><span class="nc">STARTING</span><span class="p">)</span>
+
+      <span class="cm">/* setup zookeeper */</span>
+      <span class="n">initZkClient</span><span class="p">(</span><span class="n">time</span><span class="p">)</span>
+      <span class="n">configRepository</span> <span class="o">=</span> <span class="k">new</span> <span class="nc">ZkConfigRepository</span><span class="p">(</span><span class="k">new</span> <span class="nc">AdminZkClient</span><span class="p">(</span><span class="n">zkClient</span><span class="p">))</span>
+
+      <span class="cm">/* initialize features */</span>
+      <span class="n">_featureChangeListener</span> <span class="o">=</span> <span class="k">new</span> <span class="nc">FinalizedFeatureChangeListener</span><span class="p">(</span><span class="n">featureCache</span><span class="p">,</span> <span class="n">_zkClient</span><span class="p">)</span>
+      <span class="k">if</span> <span class="p">(</span><span class="n">config</span><span class="p">.</span><span class="n">isFeatureVersioningSupported</span><span class="p">)</span> <span class="p">{</span>
+        <span class="n">_featureChangeListener</span><span class="p">.</span><span class="n">initOrThrow</span><span class="p">(</span><span class="n">config</span><span class="p">.</span><span class="n">zkConnectionTimeoutMs</span><span class="p">)</span>
+      <span class="p">}</span>
+
+      <span class="cm">/* Get or create cluster_id */</span>
+      <span class="n">_clusterId</span> <span class="o">=</span> <span class="n">getOrGenerateClusterId</span><span class="p">(</span><span class="n">zkClient</span><span class="p">)</span>
+      <span class="n">info</span><span class="p">(</span><span class="s">s&quot;Cluster ID = </span><span class="si">${</span><span class="n">clusterId</span><span class="si">}</span><span class="s">&quot;</span><span class="p">)</span>
+
+      <span class="cm">/* load metadata */</span>
+      <span class="kd">val</span> <span class="p">(</span><span class="n">preloadedBrokerMetadataCheckpoint</span><span class="p">,</span> <span class="n">initialOfflineDirs</span><span class="p">)</span> <span class="o">=</span>
+        <span class="nc">BrokerMetadataCheckpoint</span><span class="p">.</span><span class="n">getBrokerMetadataAndOfflineDirs</span><span class="p">(</span><span class="n">config</span><span class="p">.</span><span class="n">logDirs</span><span class="p">,</span> <span class="n">ignoreMissing</span> <span class="o">=</span> <span class="kc">true</span><span class="p">)</span>
+
+      <span class="k">if</span> <span class="p">(</span><span class="n">preloadedBrokerMetadataCheckpoint</span><span class="p">.</span><span class="n">version</span> <span class="o">!=</span> <span class="mi">0</span><span class="p">)</span> <span class="p">{</span>
+        <span class="k">throw</span> <span class="k">new</span> <span class="nc">RuntimeException</span><span class="p">(</span><span class="s">s&quot;Found unexpected version in loaded `meta.properties`: &quot;</span> <span class="o">+</span>
+          <span class="s">s&quot;</span><span class="si">$</span><span class="n">preloadedBrokerMetadataCheckpoint</span><span class="s">. Zk-based brokers only support version 0 &quot;</span> <span class="o">+</span>
+          <span class="s">&quot;(which is implicit when the `version` field is missing).&quot;</span><span class="p">)</span>
+      <span class="p">}</span>
+
+      <span class="cm">/* check cluster id */</span>
+      <span class="k">if</span> <span class="p">(</span><span class="n">preloadedBrokerMetadataCheckpoint</span><span class="p">.</span><span class="n">clusterId</span><span class="p">.</span><span class="n">isDefined</span> <span class="o">&amp;&amp;</span> <span class="n">preloadedBrokerMetadataCheckpoint</span><span class="p">.</span><span class="n">clusterId</span><span class="p">.</span><span class="n">get</span> <span class="o">!=</span> <span class="n">clusterId</span><span class="p">)</span>
+        <span class="k">throw</span> <span class="k">new</span> <span class="nc">InconsistentClusterIdException</span><span class="p">(</span>
+          <span class="s">s&quot;The Cluster ID </span><span class="si">${</span><span class="n">clusterId</span><span class="si">}</span><span class="s"> doesn&#39;t match stored clusterId </span><span class="si">${</span><span class="n">preloadedBrokerMetadataCheckpoint</span><span class="p">.</span><span class="n">clusterId</span><span class="si">}</span><span class="s"> in meta.properties. &quot;</span> <span class="o">+</span>
+          <span class="s">s&quot;The broker is trying to join the wrong cluster. Configured zookeeper.connect may be wrong.&quot;</span><span class="p">)</span>
+
+      <span class="cm">/* generate brokerId */</span>
+      <span class="n">config</span><span class="p">.</span><span class="n">brokerId</span> <span class="o">=</span> <span class="n">getOrGenerateBrokerId</span><span class="p">(</span><span class="n">preloadedBrokerMetadataCheckpoint</span><span class="p">)</span>
+      <span class="n">logContext</span> <span class="o">=</span> <span class="k">new</span> <span class="nc">LogContext</span><span class="p">(</span><span class="s">s&quot;[KafkaServer id=</span><span class="si">${</span><span class="n">config</span><span class="p">.</span><span class="n">brokerId</span><span class="si">}</span><span class="s">] &quot;</span><span class="p">)</span>
+      <span class="bp">this</span><span class="p">.</span><span class="n">logIdent</span> <span class="o">=</span> <span class="n">logContext</span><span class="p">.</span><span class="n">logPrefix</span>
+
+      <span class="c1">// initialize dynamic broker configs from ZooKeeper. Any updates made after this will be</span>
+      <span class="c1">// applied after DynamicConfigManager starts.</span>
+      <span class="n">config</span><span class="p">.</span><span class="n">dynamicConfig</span><span class="p">.</span><span class="n">initialize</span><span class="p">(</span><span class="n">zkClient</span><span class="p">)</span>
+
+      <span class="cm">/* start scheduler */</span>
+      <span class="n">kafkaScheduler</span> <span class="o">=</span> <span class="k">new</span> <span class="nc">KafkaScheduler</span><span class="p">(</span><span class="n">config</span><span class="p">.</span><span class="n">backgroundThreads</span><span class="p">)</span>
+      <span class="n">kafkaScheduler</span><span class="p">.</span><span class="n">startup</span><span class="p">()</span>
+
+      <span class="cm">/* create and configure metrics */</span>
+      <span class="n">kafkaYammerMetrics</span> <span class="o">=</span> <span class="nc">KafkaYammerMetrics</span><span class="p">.</span><span class="nc">INSTANCE</span>
+      <span class="n">kafkaYammerMetrics</span><span class="p">.</span><span class="n">configure</span><span class="p">(</span><span class="n">config</span><span class="p">.</span><span class="n">originals</span><span class="p">)</span>
+      <span class="n">metrics</span> <span class="o">=</span> <span class="nc">Server</span><span class="p">.</span><span class="n">initializeMetrics</span><span class="p">(</span><span class="n">config</span><span class="p">,</span> <span class="n">time</span><span class="p">,</span> <span class="n">clusterId</span><span class="p">)</span>
+
+      <span class="cm">/* register broker metrics */</span>
+      <span class="n">_brokerTopicStats</span> <span class="o">=</span> <span class="k">new</span> <span class="nc">BrokerTopicStats</span>
+
+      <span class="n">quotaManagers</span> <span class="o">=</span> <span class="nc">QuotaFactory</span><span class="p">.</span><span class="n">instantiate</span><span class="p">(</span><span class="n">config</span><span class="p">,</span> <span class="n">metrics</span><span class="p">,</span> <span class="n">time</span><span class="p">,</span> <span class="n">threadNamePrefix</span><span class="p">.</span><span class="n">getOrElse</span><span class="p">(</span><span class="s">&quot;&quot;</span><span class="p">))</span>
+      <span class="nc">KafkaBroker</span><span class="p">.</span><span class="n">notifyClusterListeners</span><span class="p">(</span><span class="n">clusterId</span><span class="p">,</span> <span class="n">kafkaMetricsReporters</span> <span class="o">++</span> <span class="n">metrics</span><span class="p">.</span><span class="n">reporters</span><span class="p">.</span><span class="n">asScala</span><span class="p">)</span>
+
+      <span class="n">logDirFailureChannel</span> <span class="o">=</span> <span class="k">new</span> <span class="nc">LogDirFailureChannel</span><span class="p">(</span><span class="n">config</span><span class="p">.</span><span class="n">logDirs</span><span class="p">.</span><span class="n">size</span><span class="p">)</span>
+
+      <span class="cm">/* start log manager */</span>
+      <span class="n">logManager</span> <span class="o">=</span> <span class="nc">LogManager</span><span class="p">(</span><span class="n">config</span><span class="p">,</span> <span class="n">initialOfflineDirs</span><span class="p">,</span>
+        <span class="k">new</span> <span class="nc">ZkConfigRepository</span><span class="p">(</span><span class="k">new</span> <span class="nc">AdminZkClient</span><span class="p">(</span><span class="n">zkClient</span><span class="p">)),</span>
+        <span class="n">kafkaScheduler</span><span class="p">,</span> <span class="n">time</span><span class="p">,</span> <span class="n">brokerTopicStats</span><span class="p">,</span> <span class="n">logDirFailureChannel</span><span class="p">,</span> <span class="n">config</span><span class="p">.</span><span class="n">usesTopicId</span><span class="p">)</span>
+      <span class="n">brokerState</span><span class="p">.</span><span class="n">set</span><span class="p">(</span><span class="nc">BrokerState</span><span class="p">.</span><span class="nc">RECOVERY</span><span class="p">)</span>
+      <span class="n">logManager</span><span class="p">.</span><span class="n">startup</span><span class="p">(</span><span class="n">zkClient</span><span class="p">.</span><span class="n">getAllTopicsInCluster</span><span class="p">())</span>
+
+      <span class="n">metadataCache</span> <span class="o">=</span> <span class="nc">MetadataCache</span><span class="p">.</span><span class="n">zkMetadataCache</span><span class="p">(</span><span class="n">config</span><span class="p">.</span><span class="n">brokerId</span><span class="p">)</span>
+      <span class="c1">// Enable delegation token cache for all SCRAM mechanisms to simplify dynamic update.</span>
+      <span class="c1">// This keeps the cache up-to-date if new SCRAM mechanisms are enabled dynamically.</span>
+      <span class="n">tokenCache</span> <span class="o">=</span> <span class="k">new</span> <span class="nc">DelegationTokenCache</span><span class="p">(</span><span class="nc">ScramMechanism</span><span class="p">.</span><span class="n">mechanismNames</span><span class="p">)</span>
+      <span class="n">credentialProvider</span> <span class="o">=</span> <span class="k">new</span> <span class="nc">CredentialProvider</span><span class="p">(</span><span class="nc">ScramMechanism</span><span class="p">.</span><span class="n">mechanismNames</span><span class="p">,</span> <span class="n">tokenCache</span><span class="p">)</span>
+
+      <span class="k">if</span> <span class="p">(</span><span class="n">enableForwarding</span><span class="p">)</span> <span class="p">{</span>
+        <span class="bp">this</span><span class="p">.</span><span class="n">forwardingManager</span> <span class="o">=</span> <span class="nc">Some</span><span class="p">(</span><span class="nc">ForwardingManager</span><span class="p">(</span>
+          <span class="n">config</span><span class="p">,</span>
+          <span class="n">metadataCache</span><span class="p">,</span>
+          <span class="n">time</span><span class="p">,</span>
+          <span class="n">metrics</span><span class="p">,</span>
+          <span class="n">threadNamePrefix</span>
+        <span class="p">))</span>
+        <span class="n">forwardingManager</span><span class="p">.</span><span class="n">foreach</span><span class="p">(</span><span class="n">_</span><span class="p">.</span><span class="n">start</span><span class="p">())</span>
+      <span class="p">}</span>
+
+      <span class="kd">val</span> <span class="n">apiVersionManager</span> <span class="o">=</span> <span class="nc">ApiVersionManager</span><span class="p">(</span>
+        <span class="nc">ListenerType</span><span class="p">.</span><span class="nc">ZK_BROKER</span><span class="p">,</span>
+        <span class="n">config</span><span class="p">,</span>
+        <span class="n">forwardingManager</span><span class="p">,</span>
+        <span class="n">brokerFeatures</span><span class="p">,</span>
+        <span class="n">featureCache</span>
+      <span class="p">)</span>
+
+      <span class="c1">// Create and start the socket server acceptor threads so that the bound port is known.</span>
+      <span class="c1">// Delay starting processors until the end of the initialization sequence to ensure</span>
+      <span class="c1">// that credentials have been loaded before processing authentications.</span>
+      <span class="c1">//</span>
+      <span class="c1">// Note that we allow the use of KRaft mode controller APIs when forwarding is enabled</span>
+      <span class="c1">// so that the Envelope request is exposed. This is only used in testing currently.</span>
+      <span class="n">socketServer</span> <span class="o">=</span> <span class="k">new</span> <span class="nc">SocketServer</span><span class="p">(</span><span class="n">config</span><span class="p">,</span> <span class="n">metrics</span><span class="p">,</span> <span class="n">time</span><span class="p">,</span> <span class="n">credentialProvider</span><span class="p">,</span> <span class="n">apiVersionManager</span><span class="p">)</span>
+      <span class="n">socketServer</span><span class="p">.</span><span class="n">startup</span><span class="p">(</span><span class="n">startProcessingRequests</span> <span class="o">=</span> <span class="kc">false</span><span class="p">)</span>
+
+      <span class="cm">/* start replica manager */</span>
+      <span class="n">alterIsrManager</span> <span class="o">=</span> <span class="k">if</span> <span class="p">(</span><span class="n">config</span><span class="p">.</span><span class="n">interBrokerProtocolVersion</span><span class="p">.</span><span class="n">isAlterIsrSupported</span><span class="p">)</span> <span class="p">{</span>
+        <span class="nc">AlterIsrManager</span><span class="p">(</span>
+          <span class="n">config</span> <span class="o">=</span> <span class="n">config</span><span class="p">,</span>
+          <span class="n">metadataCache</span> <span class="o">=</span> <span class="n">metadataCache</span><span class="p">,</span>
+          <span class="n">scheduler</span> <span class="o">=</span> <span class="n">kafkaScheduler</span><span class="p">,</span>
+          <span class="n">time</span> <span class="o">=</span> <span class="n">time</span><span class="p">,</span>
+          <span class="n">metrics</span> <span class="o">=</span> <span class="n">metrics</span><span class="p">,</span>
+          <span class="n">threadNamePrefix</span> <span class="o">=</span> <span class="n">threadNamePrefix</span><span class="p">,</span>
+          <span class="n">brokerEpochSupplier</span> <span class="o">=</span> <span class="p">()</span> <span class="o">=&gt;</span> <span class="n">kafkaController</span><span class="p">.</span><span class="n">brokerEpoch</span><span class="p">,</span>
+          <span class="n">config</span><span class="p">.</span><span class="n">brokerId</span>
+        <span class="p">)</span>
+      <span class="p">}</span> <span class="k">else</span> <span class="p">{</span>
+        <span class="nc">AlterIsrManager</span><span class="p">(</span><span class="n">kafkaScheduler</span><span class="p">,</span> <span class="n">time</span><span class="p">,</span> <span class="n">zkClient</span><span class="p">)</span>
+      <span class="p">}</span>
+      <span class="n">alterIsrManager</span><span class="p">.</span><span class="n">start</span><span class="p">()</span>
+
+      <span class="n">replicaManager</span> <span class="o">=</span> <span class="n">createReplicaManager</span><span class="p">(</span><span class="n">isShuttingDown</span><span class="p">)</span>
+      <span class="n">replicaManager</span><span class="p">.</span><span class="n">startup</span><span class="p">()</span>
+
+      <span class="kd">val</span> <span class="n">brokerInfo</span> <span class="o">=</span> <span class="n">createBrokerInfo</span>
+      <span class="kd">val</span> <span class="n">brokerEpoch</span> <span class="o">=</span> <span class="n">zkClient</span><span class="p">.</span><span class="n">registerBroker</span><span class="p">(</span><span class="n">brokerInfo</span><span class="p">)</span>
+
+      <span class="c1">// Now that the broker is successfully registered, checkpoint its metadata</span>
+      <span class="n">checkpointBrokerMetadata</span><span class="p">(</span><span class="nc">ZkMetaProperties</span><span class="p">(</span><span class="n">clusterId</span><span class="p">,</span> <span class="n">config</span><span class="p">.</span><span class="n">brokerId</span><span class="p">))</span>
+
+      <span class="cm">/* start token manager */</span>
+      <span class="n">tokenManager</span> <span class="o">=</span> <span class="k">new</span> <span class="nc">DelegationTokenManager</span><span class="p">(</span><span class="n">config</span><span class="p">,</span> <span class="n">tokenCache</span><span class="p">,</span> <span class="n">time</span> <span class="p">,</span> <span class="n">zkClient</span><span class="p">)</span>
+      <span class="n">tokenManager</span><span class="p">.</span><span class="n">startup</span><span class="p">()</span>
+
+      <span class="cm">/* start kafka controller */</span>
+      <span class="n">kafkaController</span> <span class="o">=</span> <span class="k">new</span> <span class="nc">KafkaController</span><span class="p">(</span><span class="n">config</span><span class="p">,</span> <span class="n">zkClient</span><span class="p">,</span> <span class="n">time</span><span class="p">,</span> <span class="n">metrics</span><span class="p">,</span> <span class="n">brokerInfo</span><span class="p">,</span> <span class="n">brokerEpoch</span><span class="p">,</span> <span class="n">tokenManager</span><span class="p">,</span> <span class="n">brokerFeatures</span><span class="p">,</span> <span class="n">featureCache</span><span class="p">,</span> <span class="n">threadNamePrefix</span><span class="p">)</span>
+      <span class="n">kafkaController</span><span class="p">.</span><span class="n">startup</span><span class="p">()</span>
+
+      <span class="n">adminManager</span> <span class="o">=</span> <span class="k">new</span> <span class="nc">ZkAdminManager</span><span class="p">(</span><span class="n">config</span><span class="p">,</span> <span class="n">metrics</span><span class="p">,</span> <span class="n">metadataCache</span><span class="p">,</span> <span class="n">zkClient</span><span class="p">)</span>
+
+      <span class="cm">/* start group coordinator */</span>
+      <span class="c1">// Hardcode Time.SYSTEM for now as some Streams tests fail otherwise, it would be good to fix the underlying issue</span>
+      <span class="n">groupCoordinator</span> <span class="o">=</span> <span class="nc">GroupCoordinator</span><span class="p">(</span><span class="n">config</span><span class="p">,</span> <span class="n">replicaManager</span><span class="p">,</span> <span class="nc">Time</span><span class="p">.</span><span class="nc">SYSTEM</span><span class="p">,</span> <span class="n">metrics</span><span class="p">)</span>
+      <span class="n">groupCoordinator</span><span class="p">.</span><span class="n">startup</span><span class="p">(()</span> <span class="o">=&gt;</span> <span class="n">zkClient</span><span class="p">.</span><span class="n">getTopicPartitionCount</span><span class="p">(</span><span class="nc">Topic</span><span class="p">.</span><span class="nc">GROUP_METADATA_TOPIC_NAME</span><span class="p">).</span><span class="n">getOrElse</span><span class="p">(</span><span class="n">config</span><span class="p">.</span><span class="n">offsetsTopicPartitions</span><span class="p">))</span>
+
+      <span class="cm">/* start transaction coordinator, with a separate background thread scheduler for transaction expiration and log loading */</span>
+      <span class="c1">// Hardcode Time.SYSTEM for now as some Streams tests fail otherwise, it would be good to fix the underlying issue</span>
+      <span class="n">transactionCoordinator</span> <span class="o">=</span> <span class="nc">TransactionCoordinator</span><span class="p">(</span><span class="n">config</span><span class="p">,</span> <span class="n">replicaManager</span><span class="p">,</span> <span class="k">new</span> <span class="nc">KafkaScheduler</span><span class="p">(</span><span class="n">threads</span> <span class="o">=</span> <span class="mi">1</span><span class="p">,</span> <span class="n">threadNamePrefix</span> <span class="o">=</span> <span class="s">&quot;transaction-log-manager-&quot;</span><span class="p">),</span>
+        <span class="p">()</span> <span class="o">=&gt;</span> <span class="k">new</span> <span class="nc">ProducerIdManager</span><span class="p">(</span><span class="n">config</span><span class="p">.</span><span class="n">brokerId</span><span class="p">,</span> <span class="n">zkClient</span><span class="p">),</span> <span class="n">metrics</span><span class="p">,</span> <span class="n">metadataCache</span><span class="p">,</span> <span class="nc">Time</span><span class="p">.</span><span class="nc">SYSTEM</span><span class="p">)</span>
+      <span class="n">transactionCoordinator</span><span class="p">.</span><span class="n">startup</span><span class="p">(</span>
+        <span class="p">()</span> <span class="o">=&gt;</span> <span class="n">zkClient</span><span class="p">.</span><span class="n">getTopicPartitionCount</span><span class="p">(</span><span class="nc">Topic</span><span class="p">.</span><span class="nc">TRANSACTION_STATE_TOPIC_NAME</span><span class="p">).</span><span class="n">getOrElse</span><span class="p">(</span><span class="n">config</span><span class="p">.</span><span class="n">transactionTopicPartitions</span><span class="p">))</span>
+
+      <span class="cm">/* start auto topic creation manager */</span>
+      <span class="bp">this</span><span class="p">.</span><span class="n">autoTopicCreationManager</span> <span class="o">=</span> <span class="nc">AutoTopicCreationManager</span><span class="p">(</span>
+        <span class="n">config</span><span class="p">,</span>
+        <span class="n">metadataCache</span><span class="p">,</span>
+        <span class="n">time</span><span class="p">,</span>
+        <span class="n">metrics</span><span class="p">,</span>
+        <span class="n">threadNamePrefix</span><span class="p">,</span>
+        <span class="nc">Some</span><span class="p">(</span><span class="n">adminManager</span><span class="p">),</span>
+        <span class="nc">Some</span><span class="p">(</span><span class="n">kafkaController</span><span class="p">),</span>
+        <span class="n">groupCoordinator</span><span class="p">,</span>
+        <span class="n">transactionCoordinator</span><span class="p">,</span>
+        <span class="n">enableForwarding</span>
+      <span class="p">)</span>
+      <span class="n">autoTopicCreationManager</span><span class="p">.</span><span class="n">start</span><span class="p">()</span>
+
+      <span class="cm">/* Get the authorizer and initialize it if one is specified.*/</span>
+      <span class="n">authorizer</span> <span class="o">=</span> <span class="n">config</span><span class="p">.</span><span class="n">authorizer</span>
+      <span class="n">authorizer</span><span class="p">.</span><span class="n">foreach</span><span class="p">(</span><span class="n">_</span><span class="p">.</span><span class="n">configure</span><span class="p">(</span><span class="n">config</span><span class="p">.</span><span class="n">originals</span><span class="p">))</span>
+      <span class="kd">val</span> <span class="n">authorizerFutures</span><span class="p">:</span> <span class="nc">Map</span><span class="p">[</span><span class="nc">Endpoint</span><span class="p">,</span> <span class="nc">CompletableFuture</span><span class="p">[</span><span class="nc">Void</span><span class="p">]]</span> <span class="o">=</span> <span class="n">authorizer</span> <span class="k">match</span> <span class="p">{</span>
+        <span class="k">case</span> <span class="nc">Some</span><span class="p">(</span><span class="n">authZ</span><span class="p">)</span> <span class="o">=&gt;</span>
+          <span class="n">authZ</span><span class="p">.</span><span class="n">start</span><span class="p">(</span><span class="n">brokerInfo</span><span class="p">.</span><span class="n">broker</span><span class="p">.</span><span class="n">toServerInfo</span><span class="p">(</span><span class="n">clusterId</span><span class="p">,</span> <span class="n">config</span><span class="p">)).</span><span class="n">asScala</span><span class="p">.</span><span class="n">map</span> <span class="p">{</span> <span class="k">case</span> <span class="p">(</span><span class="n">ep</span><span class="p">,</span> <span class="n">cs</span><span class="p">)</span> <span class="o">=&gt;</span>
+            <span class="n">ep</span> <span class="o">-&gt;</span> <span class="n">cs</span><span class="p">.</span><span class="n">toCompletableFuture</span>
+          <span class="p">}</span>
+        <span class="k">case</span> <span class="nc">None</span> <span class="o">=&gt;</span>
+          <span class="n">brokerInfo</span><span class="p">.</span><span class="n">broker</span><span class="p">.</span><span class="n">endPoints</span><span class="p">.</span><span class="n">map</span> <span class="p">{</span> <span class="n">ep</span> <span class="o">=&gt;</span>
+            <span class="n">ep</span><span class="p">.</span><span class="n">toJava</span> <span class="o">-&gt;</span> <span class="nc">CompletableFuture</span><span class="p">.</span><span class="n">completedFuture</span><span class="p">[</span><span class="nc">Void</span><span class="p">](</span><span class="kc">null</span><span class="p">)</span>
+          <span class="p">}.</span><span class="n">toMap</span>
+      <span class="p">}</span>
+
+      <span class="kd">val</span> <span class="n">fetchManager</span> <span class="o">=</span> <span class="k">new</span> <span class="nc">FetchManager</span><span class="p">(</span><span class="nc">Time</span><span class="p">.</span><span class="nc">SYSTEM</span><span class="p">,</span>
+        <span class="k">new</span> <span class="nc">FetchSessionCache</span><span class="p">(</span><span class="n">config</span><span class="p">.</span><span class="n">maxIncrementalFetchSessionCacheSlots</span><span class="p">,</span>
+          <span class="nc">KafkaServer</span><span class="p">.</span><span class="nc">MIN_INCREMENTAL_FETCH_SESSION_EVICTION_MS</span><span class="p">))</span>
+
+      <span class="cm">/* start processing requests */</span>
+      <span class="kd">val</span> <span class="n">zkSupport</span> <span class="o">=</span> <span class="nc">ZkSupport</span><span class="p">(</span><span class="n">adminManager</span><span class="p">,</span> <span class="n">kafkaController</span><span class="p">,</span> <span class="n">zkClient</span><span class="p">,</span> <span class="n">forwardingManager</span><span class="p">,</span> <span class="n">metadataCache</span><span class="p">)</span>
+      <span class="n">dataPlaneRequestProcessor</span> <span class="o">=</span> <span class="k">new</span> <span class="nc">KafkaApis</span><span class="p">(</span><span class="n">socketServer</span><span class="p">.</span><span class="n">dataPlaneRequestChannel</span><span class="p">,</span> <span class="n">zkSupport</span><span class="p">,</span> <span class="n">replicaManager</span><span class="p">,</span> <span class="n">groupCoordinator</span><span class="p">,</span> <span class="n">transactionCoordinator</span><span class="p">,</span>
+        <span class="n">autoTopicCreationManager</span><span class="p">,</span> <span class="n">config</span><span class="p">.</span><span class="n">brokerId</span><span class="p">,</span> <span class="n">config</span><span class="p">,</span> <span class="n">configRepository</span><span class="p">,</span> <span class="n">metadataCache</span><span class="p">,</span> <span class="n">metrics</span><span class="p">,</span> <span class="n">authorizer</span><span class="p">,</span> <span class="n">quotaManagers</span><span class="p">,</span>
+        <span class="n">fetchManager</span><span class="p">,</span> <span class="n">brokerTopicStats</span><span class="p">,</span> <span class="n">clusterId</span><span class="p">,</span> <span class="n">time</span><span class="p">,</span> <span class="n">tokenManager</span><span class="p">,</span> <span class="n">apiVersionManager</span><span class="p">)</span>
+
+      <span class="n">dataPlaneRequestHandlerPool</span> <span class="o">=</span> <span class="k">new</span> <span class="nc">KafkaRequestHandlerPool</span><span class="p">(</span><span class="n">config</span><span class="p">.</span><span class="n">brokerId</span><span class="p">,</span> <span class="n">socketServer</span><span class="p">.</span><span class="n">dataPlaneRequestChannel</span><span class="p">,</span> <span class="n">dataPlaneRequestProcessor</span><span class="p">,</span> <span class="n">time</span><span class="p">,</span>
+        <span class="n">config</span><span class="p">.</span><span class="n">numIoThreads</span><span class="p">,</span> <span class="s">s&quot;</span><span class="si">${</span><span class="nc">SocketServer</span><span class="p">.</span><span class="nc">DataPlaneMetricPrefix</span><span class="si">}</span><span class="s">RequestHandlerAvgIdlePercent&quot;</span><span class="p">,</span> <span class="nc">SocketServer</span><span class="p">.</span><span class="nc">DataPlaneThreadPrefix</span><span class="p">)</span>
+
+      <span class="n">socketServer</span><span class="p">.</span><span class="n">controlPlaneRequestChannelOpt</span><span class="p">.</span><span class="n">foreach</span> <span class="p">{</span> <span class="n">controlPlaneRequestChannel</span> <span class="o">=&gt;</span>
+        <span class="n">controlPlaneRequestProcessor</span> <span class="o">=</span> <span class="k">new</span> <span class="nc">KafkaApis</span><span class="p">(</span><span class="n">controlPlaneRequestChannel</span><span class="p">,</span> <span class="n">zkSupport</span><span class="p">,</span> <span class="n">replicaManager</span><span class="p">,</span> <span class="n">groupCoordinator</span><span class="p">,</span> <span class="n">transactionCoordinator</span><span class="p">,</span>
+          <span class="n">autoTopicCreationManager</span><span class="p">,</span> <span class="n">config</span><span class="p">.</span><span class="n">brokerId</span><span class="p">,</span> <span class="n">config</span><span class="p">,</span> <span class="n">configRepository</span><span class="p">,</span> <span class="n">metadataCache</span><span class="p">,</span> <span class="n">metrics</span><span class="p">,</span> <span class="n">authorizer</span><span class="p">,</span> <span class="n">quotaManagers</span><span class="p">,</span>
+          <span class="n">fetchManager</span><span class="p">,</span> <span class="n">brokerTopicStats</span><span class="p">,</span> <span class="n">clusterId</span><span class="p">,</span> <span class="n">time</span><span class="p">,</span> <span class="n">tokenManager</span><span class="p">,</span> <span class="n">apiVersionManager</span><span class="p">)</span>
+
+        <span class="n">controlPlaneRequestHandlerPool</span> <span class="o">=</span> <span class="k">new</span> <span class="nc">KafkaRequestHandlerPool</span><span class="p">(</span><span class="n">config</span><span class="p">.</span><span class="n">brokerId</span><span class="p">,</span> <span class="n">socketServer</span><span class="p">.</span><span class="n">controlPlaneRequestChannelOpt</span><span class="p">.</span><span class="n">get</span><span class="p">,</span> <span class="n">controlPlaneRequestProcessor</span><span class="p">,</span> <span class="n">time</span><span class="p">,</span>
+          <span class="mi">1</span><span class="p">,</span> <span class="s">s&quot;</span><span class="si">${</span><span class="nc">SocketServer</span><span class="p">.</span><span class="nc">ControlPlaneMetricPrefix</span><span class="si">}</span><span class="s">RequestHandlerAvgIdlePercent&quot;</span><span class="p">,</span> <span class="nc">SocketServer</span><span class="p">.</span><span class="nc">ControlPlaneThreadPrefix</span><span class="p">)</span>
+      <span class="p">}</span>
+
+      <span class="nc">Mx4jLoader</span><span class="p">.</span><span class="n">maybeLoad</span><span class="p">()</span>
+
+      <span class="cm">/* Add all reconfigurables for config change notification before starting config handlers */</span>
+      <span class="n">config</span><span class="p">.</span><span class="n">dynamicConfig</span><span class="p">.</span><span class="n">addReconfigurables</span><span class="p">(</span><span class="bp">this</span><span class="p">)</span>
+
+      <span class="cm">/* start dynamic config manager */</span>
+      <span class="n">dynamicConfigHandlers</span> <span class="o">=</span> <span class="nc">Map</span><span class="p">[</span><span class="nc">String</span><span class="p">,</span> <span class="nc">ConfigHandler</span><span class="p">](</span><span class="nc">ConfigType</span><span class="p">.</span><span class="nc">Topic</span> <span class="o">-&gt;</span> <span class="k">new</span> <span class="nc">TopicConfigHandler</span><span class="p">(</span><span class="n">logManager</span><span class="p">,</span> <span class="n">config</span><span class="p">,</span> <span class="n">quotaManagers</span><span class="p">,</span> <span class="n">kafkaController</span><span class="p">),</span>
+                                                         <span class="nc">ConfigType</span><span class="p">.</span><span class="nc">Client</span> <span class="o">-&gt;</span> <span class="k">new</span> <span class="nc">ClientIdConfigHandler</span><span class="p">(</span><span class="n">quotaManagers</span><span class="p">),</span>
+                                                         <span class="nc">ConfigType</span><span class="p">.</span><span class="nc">User</span> <span class="o">-&gt;</span> <span class="k">new</span> <span class="nc">UserConfigHandler</span><span class="p">(</span><span class="n">quotaManagers</span><span class="p">,</span> <span class="n">credentialProvider</span><span class="p">),</span>
+                                                         <span class="nc">ConfigType</span><span class="p">.</span><span class="nc">Broker</span> <span class="o">-&gt;</span> <span class="k">new</span> <span class="nc">BrokerConfigHandler</span><span class="p">(</span><span class="n">config</span><span class="p">,</span> <span class="n">quotaManagers</span><span class="p">),</span>
+                                                         <span class="nc">ConfigType</span><span class="p">.</span><span class="nc">Ip</span> <span class="o">-&gt;</span> <span class="k">new</span> <span class="nc">IpConfigHandler</span><span class="p">(</span><span class="n">socketServer</span><span class="p">.</span><span class="n">connectionQuotas</span><span class="p">))</span>
+
+      <span class="c1">// Create the config manager. start listening to notifications</span>
+      <span class="n">dynamicConfigManager</span> <span class="o">=</span> <span class="k">new</span> <span class="nc">DynamicConfigManager</span><span class="p">(</span><span class="n">zkClient</span><span class="p">,</span> <span class="n">dynamicConfigHandlers</span><span class="p">)</span>
+      <span class="n">dynamicConfigManager</span><span class="p">.</span><span class="n">startup</span><span class="p">()</span>
+
+      <span class="n">socketServer</span><span class="p">.</span><span class="n">startProcessingRequests</span><span class="p">(</span><span class="n">authorizerFutures</span><span class="p">)</span>
+
+      <span class="n">brokerState</span><span class="p">.</span><span class="n">set</span><span class="p">(</span><span class="nc">BrokerState</span><span class="p">.</span><span class="nc">RUNNING</span><span class="p">)</span>
+      <span class="n">shutdownLatch</span> <span class="o">=</span> <span class="k">new</span> <span class="nc">CountDownLatch</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span>
+      <span class="n">startupComplete</span><span class="p">.</span><span class="n">set</span><span class="p">(</span><span class="kc">true</span><span class="p">)</span>
+      <span class="n">isStartingUp</span><span class="p">.</span><span class="n">set</span><span class="p">(</span><span class="kc">false</span><span class="p">)</span>
+      <span class="nc">AppInfoParser</span><span class="p">.</span><span class="n">registerAppInfo</span><span class="p">(</span><span class="nc">Server</span><span class="p">.</span><span class="nc">MetricsPrefix</span><span class="p">,</span> <span class="n">config</span><span class="p">.</span><span class="n">brokerId</span><span class="p">.</span><span class="n">toString</span><span class="p">,</span> <span class="n">metrics</span><span class="p">,</span> <span class="n">time</span><span class="p">.</span><span class="n">milliseconds</span><span class="p">())</span>
+      <span class="n">info</span><span class="p">(</span><span class="s">&quot;started&quot;</span><span class="p">)</span>
+    <span class="p">}</span>
+  <span class="p">}</span>
+  <span class="k">catch</span> <span class="p">{</span>
+    <span class="k">case</span> <span class="n">e</span><span class="p">:</span> <span class="nc">Throwable</span> <span class="o">=&gt;</span>
+      <span class="n">fatal</span><span class="p">(</span><span class="s">&quot;Fatal error during KafkaServer startup. Prepare to shutdown&quot;</span><span class="p">,</span> <span class="n">e</span><span class="p">)</span>
+      <span class="n">isStartingUp</span><span class="p">.</span><span class="n">set</span><span class="p">(</span><span class="kc">false</span><span class="p">)</span>
+      <span class="n">shutdown</span><span class="p">()</span>
+      <span class="k">throw</span> <span class="n">e</span>
+  <span class="p">}</span>
+<span class="p">}</span>
+</code></pre></div>
+<p>创建 <code>SocketServer</code> 并调用 <code>socketServer.startup()</code></p>
+                
+              
+              
+                
+
+
+              
+            </article>
+          </div>
+        </div>
+        
+      </main>
+      
+        
+<footer class="md-footer">
+  
+    <nav class="md-footer__inner md-grid" aria-label="Footer">
+      
+        
+        <a href="../KafkaApis/" class="md-footer__link md-footer__link--prev" aria-label="上一页: Kafka Apis" rel="prev">
+          <div class="md-footer__button md-icon">
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11h12z"/></svg>
+          </div>
+          <div class="md-footer__title">
+            <div class="md-ellipsis">
+              <span class="md-footer__direction">
+                上一页
+              </span>
+              Kafka Apis
+            </div>
+          </div>
+        </a>
+      
+      
+        
+        <a href="../../utils/KafkaScheduler/" class="md-footer__link md-footer__link--next" aria-label="下一页: Kafka Scheduler" rel="next">
+          <div class="md-footer__title">
+            <div class="md-ellipsis">
+              <span class="md-footer__direction">
+                下一页
+              </span>
+              Kafka Scheduler
+            </div>
+          </div>
+          <div class="md-footer__button md-icon">
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M4 11v2h12l-5.5 5.5 1.42 1.42L19.84 12l-7.92-7.92L10.5 5.5 16 11H4z"/></svg>
+          </div>
+        </a>
+      
+    </nav>
+  
+  <div class="md-footer-meta md-typeset">
+    <div class="md-footer-meta__inner md-grid">
+      <div class="md-footer-copyright">
+        
+        
+          Made with
+          <a href="https://squidfunk.github.io/mkdocs-material/" target="_blank" rel="noopener">
+            Material for MkDocs
+          </a>
+        
+        
+      </div>
+      
+    </div>
+  </div>
+</footer>
+      
+    </div>
+    <div class="md-dialog" data-md-component="dialog">
+      <div class="md-dialog__inner md-typeset"></div>
+    </div>
+    <script id="__config" type="application/json">{"base": "../../../../..", "features": [], "translations": {"clipboard.copy": "\u590d\u5236", "clipboard.copied": "\u5df2\u590d\u5236", "search.config.lang": "ja", "search.config.pipeline": "trimmer, stemmer", "search.config.separator": "[\\uff0c\\u3002]+", "search.placeholder": "\u641c\u7d22", "search.result.placeholder": "\u952e\u5165\u4ee5\u5f00\u59cb\u641c\u7d22", "search.result.none": "\u6ca1\u6709\u627e\u5230\u7b26\u5408\u6761\u4ef6\u7684\u7ed3\u679c", "search.result.one": "\u627e\u5230 1 \u4e2a\u7b26\u5408\u6761\u4ef6\u7684\u7ed3\u679c", "search.result.other": "# \u4e2a\u7b26\u5408\u6761\u4ef6\u7684\u7ed3\u679c", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.term.missing": "Missing", "select.version.title": "Select version"}, "search": "../../../../../assets/javascripts/workers/search.f8263e09.min.js", "version": null}</script>
+    
+    
+      <script src="../../../../../assets/javascripts/bundle.4fc53ad4.min.js"></script>
+      
+    
+  </body>
+</html>
