@@ -1,5 +1,7 @@
 # 1.6.1 LogManager 启动
 
+## 创建
+
 在 `kafkaServer.startup()` 中：
 
 ``` scala
@@ -54,18 +56,23 @@ object LogManager {
 }
 ```
 
-`LogManager` 负责：
-* creation
-* retrieval
-* cleaning
+## 启动
 
-所有 read 和 write 操作都会由单独的 `Log` 对象负责
+### loadLogs
 
-`LogManager` 维护一个或多个目录，新的 log 会在 log 最少的目录中创建，没有尝试移动分区，考虑 size 或者 I/O rate 均衡。
+`LogManager` 实例化时会通过 `loadLogs()` 方法遍历 `log.dirs` 配置的每个目录，对每个目前启动 `num.recovery.threads.per.data.dir` 个线程，加载目录下的数据文件。
 
-一个后台线程通过周期回收 log segment 处理 log retention
+`log.dirs` 配置目录下的每个 logDir 目录代表一个 topic partition，使用 `loadLog()` 加载。
 
-`LogManager.startup()` 启动实际的后台线程：
+`loadLog()` 会创建一个 `Log` 对象实例，并将 topic partition 与对应的 `Log` 实例保存到 `currentLogs` 中。
+
+#### Log 对象
+
+`Log` 对象在初始化时，会通过 `loadSegments()` 方法加载 topic partition 目录下所有 segments。
+
+### startup
+
+`LogManager.startup()` 启动的后台线程：
 
 ``` scala
 /**
@@ -106,11 +113,4 @@ def startup() {
     cleaner.startup()
 }
 ```
-
-## loadLogs
-
-`LogManager` 实例化时会通过 `loadLogs()` 方法在配置的 `log.dirs` 目录中加载所有的 log
-
-
-num.recovery.threads.per.data.dir
 

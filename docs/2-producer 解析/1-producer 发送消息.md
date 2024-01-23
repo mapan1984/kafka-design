@@ -28,6 +28,7 @@ producer.close();
 ### KafkaProducer 实例
 
 需要注意 `KafkaProducer` 中以下几个属性：
+
 * `partitioner`: `Partitioner` 实例，对应分区算法
 * `metadata`: `ProducerMetadata` 实例，包含 topic metadata
 * `accumulator`: `RecordAccumulator` 实例，包含每个 topic-partition 发送数据的队列
@@ -37,6 +38,7 @@ producer.close();
 ### Sender 实例
 
 需要注意 `Sender` 中以下几个属性：
+
 * `client`: `KafkaClient` 实例(实际为`NetworkClient`)，进行实际的数据发送
 * `accumulator`: `RecordAccumulator` 实例
 * `metadata`: `ProducerMetadata` 实例，包含 topic metadata
@@ -48,9 +50,10 @@ producer.close();
 
 KafkaProducer 初始化之后，创建的对象如下所示
 
-![](/images/2-producer/kafka producer.jpeg)
+![](/kafka-design/images/2-producer/kafka producer.jpeg)
 
 `KafkaProducer` 构造方法中，初始如下关键属性
+
 * `partitioner`
 * `accumulator`
 * `metadata`
@@ -128,6 +131,7 @@ while (running) {
 ```
 
 `run` 循环运行 `runOnce`，`runOnce` 主要有 2 步（先不讨论事务性支持）：
+
 - sendProducerData  // 将 record batch 转移到每个节点的生产请求列表中
     1. 获取 metadata
     2. 从 accumulator 的 batches 中取出可以发送的数据，
@@ -154,6 +158,7 @@ while (running) {
 - client.poll  // `NetworkClient.poll` Do actual reads and writes to sockets
 
 这里有主要的几点：
+
 1. **何时与 broker 建立连接**：
     1. 获取 `readyNodes` 之后，会遍历 `readyNodes` 检查检查 node 是否已经连接，这里调用 `NetworkClient`.`ready()`
     2. `NetworkClient`.`ready()` 中如果判断 node 已连接，会直接返回 `true`，如果没有连接，则进行连接，并返回 `false`
@@ -222,6 +227,7 @@ while (running) {
                 2. 通过 `channel.maybeCompleteSend()` 判断 `NetworkSend` 是否发送完成，如果是，将 send 加入到自身的 `completedSends`
 
 这里有主要的几点：
+
 1. **何时进行 ssl, sasl 握手**：在 `Sender`.`run()` 中会检查要发送数据对应的 leader 是否连接，如果没有则进行连接，在 `Selector`.`pollSelectionKeys()` 中，如果 key 对应的 channel 已连接但还未 ready，则调用 `KafkaChannel`.`prepare()` 进行 ssl 握手和 sasl 握手
 
 ## 参考

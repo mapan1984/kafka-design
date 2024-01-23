@@ -1,6 +1,7 @@
 # SocketServer
 
 支持 2 种类型的请求：
+
 1. 数据：
     - 处理来自 client 或者同集群其他 broker 的请求
     - 线程模型是：
@@ -43,4 +44,3 @@ private var connectionQuotas: ConnectionQuotas = _
 private var startedProcessingRequests = false
 private var stoppedProcessingRequests = false
 ```
-

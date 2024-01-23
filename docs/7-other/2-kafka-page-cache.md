@@ -1,3 +1,5 @@
+# page cache
+
 1. producer 生产消息时，会使用 `pwrite()` 系统调用(对应 Java NIO `FileChannel.write()` API)按偏移量写入数据，并且都会先写入 page cache 里
 2. consumer 消费消息时，会使用 `sendfile()` 系统调用(对应 Java NIO `FileChannel.transferTo()` API)，**零拷贝**地将数据从 page cache 传输到 broker 的 socket buffer，再通过网络传输
 3. follower 同步消息，与 consumer 同理

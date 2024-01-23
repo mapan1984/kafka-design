@@ -24,13 +24,34 @@ nav:
     - 1.4 ReplicaManager:
       - '1-server 解析/4-ReplicaManager/README.md'
       - 1.4.1 ReplicaManager 启动: '1-server 解析/4-ReplicaManager/1-replica manager 启动.md'
+      - 1.4.2 isr: '1-server 解析/4-ReplicaManager/2-isr.md'
+      - 1.4.3 become leader or follower: '1-server 解析/4-ReplicaManager/3-become-leader-or-follower.md'
+      - 1.4.4 replica fetcher manager: '1-server 解析/4-ReplicaManager/4-replica-fetcher-manager.md'
+      - 1.4.7 append records: '1-server 解析/4-ReplicaManager/7-append-records.md'
+      - 1.4.8 delete records: '1-server 解析/4-ReplicaManager/8-delete-records.md'
+      - 1.4.8 replication quota manager: '1-server 解析/4-ReplicaManager/9-replication-quota-manager.md'
     - 1.5 GroupCoordinator:
       - '1-server 解析/5-GroupCoordinator/README.md'
+      - 1.5.1 coordinator 启动: '1-server 解析/5-GroupCoordinator/1-coordinator启动.md'
+      - 1.5.2 coordinator 切换及更新: '1-server 解析/5-GroupCoordinator/2-coordinator切换及更新.md'
     - 1.6 LogManager:
       - '1-server 解析/6-LogManager/README.md'
       - 1.6.1 LogManager 启动: '1-server 解析/6-LogManager/1-LogManager 启动.md'
       - 1.6.2 日志清理: '1-server 解析/6-LogManager/2-日志清理.md'
       - 1.6.3 flush log: '1-server 解析/6-LogManager/3-flush log.md'
+      - 1.6.4 recovery point: '1-server 解析/6-LogManager/4-recovery-point.md'
+      - 1.6.5 start offset: '1-server 解析/6-LogManager/5-start-offset.md'
+      - 1.6.7 压缩策略的日志清理: '1-server 解析/6-LogManager/7-压缩策略的日志清理.md'
+      - 1.6.8 LogSegment: '1-server 解析/6-LogManager/8-LogSegment.md'
+    - 1.7 Acl 权限控制: '1-server 解析/7-acl 控制/README.md'
+    - 1.9 Metrics:
+      - '1-server 解析/9-Metrics/README.md'
+      - 1.9.1 Yammer: '1-server 解析/9-Metrics/1-Yammer.md'
+      - 1.9.2 Kafka Metrics Group: '1-server 解析/9-Metrics/2-KafkaMetricsGroup.md'
+    - 1.10 Config:
+      - '1-server 解析/10-Config/README.md'
+      - 1.10.1 Kafka Config: '1-server 解析/10-Config/1-KafkaConfig.md'
+      - 1.10.2 Dynamic Config: '1-server 解析/10-Config/2-Dynamic-Config.md'
   - 2. producer 解析:
     - '2-producer 解析/README.md'
     - 2.1 producer 发送消息: '2-producer 解析/1-producer 发送消息.md'
@@ -39,8 +60,12 @@ nav:
   - 3. consumer 解析:
     - '3-consumer 解析/README.md'
     - 3.1-消费组管理: '3-consumer 解析/1-消费组管理.md'
+    - 3.2-拉取消息: '3-consumer 解析/2-consumer 拉取消息.md'
   - 4. kafka network io:
     - '4-kafka-network-io/README.md'
+    - 4.1 KafkaChannel: '4-kafka-network-io/1-KafkaChannel.md'
+    - 4.2 TransportLayer: '4-kafka-network-io/2-TransportLayer.md'
+    - 4.3 Authenticator: '4-kafka-network-io/3-Authenticator.md'
   - 5. Release Note:
     - '5-release note/README.md'
     - 2.7: '5-release note/2.7.md'
@@ -75,10 +100,10 @@ nav:
         - Controller:
           - ControllerState: '6-src/core/kafka/controller/ControllerState.md'
           - ReplicaStateMachine: '6-src/core/kafka/controller/ReplicaStateMachine.md'
-          - ControllerContext: 
+          - ControllerContext:
             - '6-src/core/kafka/controller/ControllerContext/README.md'
             - ReplicaAssignment: '6-src/core/kafka/controller/ControllerContext/ReplicaAssignment.md'
-          - ControllerEventManager: 
+          - ControllerEventManager:
             - '6-src/core/kafka/controller/ControllerEventManager/README.md'
             - ControllerEventProcessor: '6-src/core/kafka/controller/ControllerEventManager/ControllerEventProcessor.md'
             - ControllerEventThread: '6-src/core/kafka/controller/ControllerEventManager/ControllerEventThread.md'
@@ -102,6 +127,8 @@ nav:
           - Kafka Scheduler: '6-src/core/kafka/utils/KafkaScheduler.md'
   - 7. 其他:
     - 7.1 topic 名规则: '7-other/1-topic-name-limit.md'
+    - 7.2 page cache: '7-other/2-kafka-page-cache.md'
+    - 7.3 reassign partition: '7-other/3-reassign-partition.md'
 
 # docs_dir: docs
 
@@ -113,14 +140,14 @@ theme:
   #   scheme: slate
   #   primary: blue grey
   #   accent: deep orange
-  palette: 
+  palette:
     - scheme: default
       primary: blue grey
       accent: deep orange
       toggle:
         icon: material/toggle-switch-off-outline
         name: Switch to dark mode
-    - scheme: slate 
+    - scheme: slate
       toggle:
         icon: material/toggle-switch
         name: Switch to light mode

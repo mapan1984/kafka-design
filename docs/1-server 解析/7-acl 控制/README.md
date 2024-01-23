@@ -48,6 +48,8 @@ val authorizerFutures: Map[Endpoint, CompletableFuture[Void]] = authorizer match
   }
 ```
 
+处理函数与对应检查的权限如下：
+
 - `handleProduceRequest`
     - WRITE            TRANSACTIONANL_ID produceRequest.transactionalId
     - IDEMPOTENT_WRITE CLUSTER           CLUSTER_NAME
@@ -60,3 +62,15 @@ val authorizerFutures: Map[Endpoint, CompletableFuture[Void]] = authorizer match
 - `handleListOffsetRequestV1AndAbove`
     - DESCRIBE TOPIC
 
+改写 `kafka.security.authorizer.AclAuthorizer` 的 `authorize()` 方法，让其对所有 `PLAINTEXT` 协议的访问放行。
+
+``` scala
+  override def authorize(requestContext: AuthorizableRequestContext, actions: util.List[Action]): util.List[AuthorizationResult] = {
+    if (requestContext.securityProtocol() == SecurityProtocol.PLAINTEXT) {
+      // PLAINTEXT 允许一切操作
+      actions.asScala.map { _ => AuthorizationResult.ALLOWED }.asJava
+    } else {
+      actions.asScala.map { action => authorizeAction(requestContext, action) }.asJava
+    }
+  }
+```

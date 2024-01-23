@@ -1,6 +1,6 @@
 # 1.5 GroupCoordinator
 
-kafka 集群每个 broker 都会启动一个 GroupCoordinator，负责 consumer group member 与订阅 topic partition 的分配与 offset 管理。
+kafka 集群每个 broker 都会启动一个 GroupCoordinator，负责 consumer group 下 member 的加入/退出/心跳同步，与 offset 记录。（组内 partition 分配由 leader consumer 决定）
 
 每个 GroupCoordinator 都会负责一组 group，由 group id 决定 group 该由那个 GroupCoordinator 负责，具体分配方法可以查看 `handleFindCoordinatorRequest()` 方法。
 
