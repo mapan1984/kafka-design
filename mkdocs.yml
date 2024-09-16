@@ -5,7 +5,7 @@ site_description: kafka 设计实现解析
 site_author: mapan
 
 nav:
-  - 0. kafka 设计实现解析: 'README.md'
+  - '0. kafka 设计实现解析': 'README.md'
   - 1. server 解析:
     - '1-server 解析/README.md'
     - 1.1 server 启动过程: '1-server 解析/1-server 启动过程.md'

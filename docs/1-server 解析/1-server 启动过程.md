@@ -6,7 +6,7 @@
 
 查看 `Kafka` 的 `main` 函数，其内容为：
 
-1. 解析参数
+1. 解析参数，第一个参数为配置文件路径，从配置文件加载服务配置。其他参数可选，指定服务配置。
 2. 构建 `KafkaServer` (2.8.0 之后支持 `KafkaRaftServer`)
 3. 对构造的 `KafkaServer` 对象调用 `startup()` 方法
 

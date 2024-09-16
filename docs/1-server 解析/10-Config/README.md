@@ -49,3 +49,10 @@ object KafkaServerStartable {
 }
 ```
 
+`KafkaConfig` `fromProps` 方法
+
+``` scala
+  def fromProps(props: Properties, doLog: Boolean): KafkaConfig =
+    new KafkaConfig(props, doLog)
+```
+
